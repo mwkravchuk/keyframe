@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Sidebar } from "@/components/dashboard/sidebar";
 
-export default async function AppLayout({
+export default async function ProjectsLayout({
   children,
 }: {
   children: ReactNode;

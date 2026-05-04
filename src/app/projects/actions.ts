@@ -53,7 +53,7 @@ export async function createProjectAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/app/projects");
+  revalidatePath("/projects");
 }
 
 export async function moveProjectStageAction(formData: FormData) {
@@ -76,8 +76,8 @@ export async function moveProjectStageAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/app/projects");
-  revalidatePath(`/app/projects/${projectId}`);
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
 }
 
 export async function updateProjectAction(formData: FormData) {
@@ -110,6 +110,6 @@ export async function updateProjectAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/app/projects");
-  revalidatePath(`/app/projects/${id}`);
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${id}`);
 }

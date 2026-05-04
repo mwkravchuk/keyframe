@@ -114,7 +114,7 @@ function ProjectCard({
     >
       <div className="flex items-start justify-between gap-2">
         <Link
-          href={`/app/projects/${project.id}`}
+          href={`/projects/${project.id}`}
           className="text-sm font-medium text-foreground transition hover:text-accent"
         >
           {project.title}

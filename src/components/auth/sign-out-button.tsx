@@ -2,7 +2,19 @@
 
 import { signOut } from "next-auth/react";
 
-export function SignOutButton() {
+export function SignOutButton({ variant = "sidebar" }: { variant?: "sidebar" | "inline" }) {
+  if (variant === "inline") {
+    return (
+      <button
+        type="button"
+        onClick={() => signOut({ callbackUrl: "/" })}
+        className="text-sm text-muted-foreground transition hover:text-foreground"
+      >
+        Sign out
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"

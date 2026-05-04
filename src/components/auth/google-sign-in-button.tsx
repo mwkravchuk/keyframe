@@ -6,7 +6,7 @@ export function GoogleSignInButton() {
   return (
     <button
       type="button"
-      onClick={() => signIn("google", { callbackUrl: "/app" })}
+      onClick={() => signIn("google", { callbackUrl: "/projects" })}
       className="mt-8 w-full rounded-md bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground transition hover:brightness-105"
     >
       Continue with Google

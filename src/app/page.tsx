@@ -1,66 +1,125 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { VIDEO_PROJECT_STAGE_LABELS } from "@/lib/video-projects";
+import type { VideoProjectStage } from "@/lib/video-projects";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
-export default function Home() {
+const STAGE_COLORS: Record<VideoProjectStage, string> = {
+  IDEA: "text-sky-400 bg-sky-400/10 border-sky-400/20",
+  DRAFTING: "text-violet-400 bg-violet-400/10 border-violet-400/20",
+  RECORDING: "text-amber-400 bg-amber-400/10 border-amber-400/20",
+  EDITING: "text-orange-400 bg-orange-400/10 border-orange-400/20",
+  REVIEW: "text-pink-400 bg-pink-400/10 border-pink-400/20",
+  PUBLISHED: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+};
+
+export default async function Home() {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id ?? null;
+
+  const recentProjects = userId
+    ? await prisma.videoProject.findMany({
+        where: { userId },
+        orderBy: { updatedAt: "desc" },
+        take: 12,
+      })
+    : [];
+
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_-8%,color-mix(in_oklab,var(--accent)_16%,transparent),transparent_38%),radial-gradient(circle_at_88%_0%,color-mix(in_oklab,#8bbcff_8%,transparent),transparent_34%)]"
-      />
-
-      <header className="relative z-10 flex w-full items-center justify-between px-6 py-7 lg:px-14">
-        <div className="text-lg font-semibold tracking-tight">Keyframe</div>
-        <div className="flex items-center gap-3">
+    <div className="flex min-h-screen flex-col bg-background">
+      {/* Minimal header */}
+      <header className="flex items-center justify-between px-6 py-5 lg:px-10">
+        <span className="text-sm font-semibold tracking-tight text-foreground">Keyframe</span>
+        <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Link
-            href="/login"
-            className="rounded-md border border-border bg-transparent px-4 py-2 text-sm font-medium text-foreground transition hover:bg-muted"
-          >
-            Log in
-          </Link>
+          {userId ? (
+            <>
+              <Link
+                href="/projects"
+                className="text-sm text-muted-foreground transition hover:text-foreground"
+              >
+                Projects
+              </Link>
+              <SignOutButton variant="inline" />
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm text-muted-foreground transition hover:text-foreground"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </header>
 
-      <main className="relative z-10 flex w-full flex-1 flex-col px-6 pb-14 pt-20 lg:px-14 lg:pt-28">
-        <section className="max-w-3xl">
-          <h1 className="text-4xl font-semibold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
-            Move from idea to publish with cinematic precision.
+      {/* Centered content */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-20">
+        {/* Input */}
+        <section className="w-full max-w-xl">
+          <h1 className="mb-6 text-center text-2xl font-semibold tracking-tight text-foreground">
+            What video do you want to make?
           </h1>
-          <p className="mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            Keyframe gives creators a focused workflow from concept to script, shotlist,
-            publishing, and review in a single command center.
-          </p>
-          <div className="mt-10 flex flex-wrap items-center gap-3">
-            <Link
-              href="/login"
-              className="rounded-md bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition hover:brightness-105"
-            >
-              Start with Keyframe
-            </Link>
-            <Link
-              href="/app"
-              className="rounded-md border border-border px-6 py-3 text-sm font-semibold transition hover:bg-muted"
-            >
-              Open app shell
-            </Link>
-          </div>
+
+          <form>
+            <div className="flex items-center gap-3 rounded-full border border-border bg-card px-5 py-3.5 transition focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+              <input
+                name="prompt"
+                type="text"
+                autoComplete="off"
+                placeholder="Describe your idea…"
+                className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+              />
+              {!userId && (
+                <Link
+                  href="/login"
+                  className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-accent-foreground transition hover:brightness-105"
+                >
+                  Sign in
+                </Link>
+              )}
+            </div>
+          </form>
+
+          {userId && (
+            <div className="mt-4 flex items-center justify-center gap-5">
+              <Link
+                href="/projects"
+                className="text-xs text-muted-foreground transition hover:text-foreground"
+              >
+                New project manually
+              </Link>
+            </div>
+          )}
         </section>
 
-        <section className="mt-20 border-y border-border">
-          <div className="grid md:grid-cols-3 md:divide-x md:divide-border">
-            {[
-              "Ideation and concept stack",
-              "Script and shotlist drafting",
-              "Publishing and post-release review",
-            ].map((item) => (
-              <article key={item} className="px-0 py-5 text-sm text-muted-foreground md:px-6">
-                <p className="max-w-56">{item}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-      </main>
+        {/* Recent projects — only when logged in and have projects */}
+        {recentProjects.length > 0 && (
+          <section className="mt-14 w-full max-w-3xl">
+            <div className="-mx-6 flex gap-3 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {recentProjects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="group flex w-48 shrink-0 flex-col gap-3 rounded-lg border border-border bg-card p-4 transition hover:border-accent"
+                >
+                  <span
+                    className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-[10px] font-medium ${STAGE_COLORS[project.stage as VideoProjectStage]}`}
+                  >
+                    {VIDEO_PROJECT_STAGE_LABELS[project.stage as VideoProjectStage]}
+                  </span>
+                  <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground transition group-hover:text-accent">
+                    {project.title}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

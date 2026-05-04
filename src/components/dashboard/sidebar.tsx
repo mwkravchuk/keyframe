@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { Clapperboard, FolderKanban, Home, Settings } from "lucide-react";
+import { Clapperboard, FolderKanban, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 
 const nav = [
-  { href: "/app", label: "Overview", icon: Home },
-  { href: "/app/projects", label: "Projects", icon: FolderKanban },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
 ];
 
 export function Sidebar() {
