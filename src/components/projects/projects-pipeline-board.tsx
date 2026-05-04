@@ -5,11 +5,13 @@ import { useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   useDroppable,
   useSensor,
   useSensors,
+  type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
@@ -21,7 +23,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import {
-  getAdjacentStage,
   VIDEO_PROJECT_STAGE_LABELS,
   VIDEO_PROJECT_STAGES,
   type VideoProjectStage,
@@ -56,11 +57,9 @@ async function updateProjectStage(projectId: string, stage: VideoProjectStage) {
 function StageColumn({
   stage,
   projects,
-  onMove,
 }: {
   stage: VideoProjectStage;
   projects: ProjectItem[];
-  onMove: (projectId: string, stage: VideoProjectStage) => Promise<void>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
 
@@ -82,7 +81,7 @@ function StageColumn({
             <p className="text-xs text-muted-foreground">No projects in this stage.</p>
           ) : (
             projects.map((project) => (
-              <ProjectCard key={project.id} project={project} onMove={onMove} />
+              <ProjectCard key={project.id} project={project} />
             ))
           )}
         </div>
@@ -93,27 +92,24 @@ function StageColumn({
 
 function ProjectCard({
   project,
-  onMove,
 }: {
   project: ProjectItem;
-  onMove: (projectId: string, stage: VideoProjectStage) => Promise<void>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: project.id,
   });
 
-  const prevStage = getAdjacentStage(project.stage, "prev");
-  const nextStage = getAdjacentStage(project.stage, "next");
-
   return (
     <article
       ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className={`border bg-card px-3 py-3 ${
-        isDragging ? "border-accent opacity-85" : "border-border"
+      className={`cursor-grab border bg-card px-3 py-3 active:cursor-grabbing ${
+        isDragging ? "border-accent opacity-35" : "border-border"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -127,8 +123,7 @@ function ProjectCard({
           type="button"
           aria-label={`Drag ${project.title}`}
           className="rounded-md border border-border p-1 text-muted-foreground"
-          {...attributes}
-          {...listeners}
+          tabIndex={-1}
         >
           <GripVertical size={14} />
         </button>
@@ -137,34 +132,30 @@ function ProjectCard({
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
         {project.nextStep || project.concept || "No context added yet."}
       </p>
+    </article>
+  );
+}
 
-      <div className="mt-3 flex items-center gap-2">
-        {prevStage ? (
-          <button
-            type="button"
-            onClick={() => onMove(project.id, prevStage)}
-            className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            Back
-          </button>
-        ) : null}
-
-        {nextStage ? (
-          <button
-            type="button"
-            onClick={() => onMove(project.id, nextStage)}
-            className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            Forward
-          </button>
-        ) : null}
+function ProjectCardOverlay({ project }: { project: ProjectItem }) {
+  return (
+    <article className="cursor-grabbing border border-accent bg-card px-3 py-3 shadow-xl shadow-black/15">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-medium text-foreground">{project.title}</p>
+        <span className="rounded-md border border-border p-1 text-muted-foreground">
+          <GripVertical size={14} />
+        </span>
       </div>
+
+      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+        {project.nextStep || project.concept || "No context added yet."}
+      </p>
     </article>
   );
 }
 
 export function ProjectsPipelineBoard({ initialProjects }: Props) {
   const [projects, setProjects] = useState(initialProjects);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -179,6 +170,15 @@ export function ProjectsPipelineBoard({ initialProjects }: Props) {
       return acc;
     }, {} as Record<VideoProjectStage, ProjectItem[]>);
   }, [projects]);
+
+  const activeProject = useMemo(
+    () => projects.find((project) => project.id === activeProjectId) ?? null,
+    [projects, activeProjectId],
+  );
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveProjectId(String(event.active.id));
+  }
 
   async function handleMove(projectId: string, stage: VideoProjectStage) {
     const previousProjects = projects;
@@ -202,6 +202,8 @@ export function ProjectsPipelineBoard({ initialProjects }: Props) {
   }
 
   async function handleDragEnd(event: DragEndEvent) {
+    setActiveProjectId(null);
+
     const { active, over } = event;
 
     if (!over) {
@@ -227,18 +229,31 @@ export function ProjectsPipelineBoard({ initialProjects }: Props) {
     await handleMove(project.id, targetStage);
   }
 
+  function handleDragCancel() {
+    setActiveProjectId(null);
+  }
+
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
       <div className="mt-8 grid gap-8 lg:grid-cols-3">
         {VIDEO_PROJECT_STAGES.map((stage) => (
           <StageColumn
             key={stage}
             stage={stage}
             projects={projectsByStage[stage]}
-            onMove={handleMove}
           />
         ))}
       </div>
+
+      <DragOverlay>
+        {activeProject ? <ProjectCardOverlay project={activeProject} /> : null}
+      </DragOverlay>
     </DndContext>
   );
 }
