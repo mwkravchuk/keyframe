@@ -27,7 +27,7 @@ export function ThemeToggle() {
       type="button"
       aria-label="Toggle theme"
       onClick={toggleTheme}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full border bg-card text-card-foreground transition hover:bg-muted"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card text-card-foreground transition duration-150 hover:bg-muted"
     >
       <Sun size={16} className="hidden dark:block" />
       <Moon size={16} className="block dark:hidden" />

@@ -18,7 +18,9 @@ export default async function ProjectsLayout({
   return (
     <div className="relative grid min-h-screen w-full gap-0 bg-background lg:grid-cols-[280px_1fr]">
       <Sidebar />
-      <main className="border-l border-border px-6 py-10 lg:px-10">{children}</main>
+      <main className="border-l border-border px-6 py-8 lg:px-10 lg:py-10">
+        <div className="mx-auto w-full max-w-6xl">{children}</div>
+      </main>
     </div>
   );
 }

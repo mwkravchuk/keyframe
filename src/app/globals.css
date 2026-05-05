@@ -1,15 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #eef2fa;
-  --foreground: #11162a;
-  --muted: #dfe5f2;
-  --muted-foreground: #5f6f8d;
-  --card: #f8faff;
-  --card-foreground: #11162a;
-  --border: #cfd9ee;
+  --background: #f4f7fb;
+  --foreground: #101523;
+  --muted: #ebf0f7;
+  --muted-foreground: #61708a;
+  --card: #f8fbff;
+  --card-foreground: #101523;
+  --surface-2: #eef3fb;
+  --border: #ccd7ea;
   --accent: #7c8cff;
   --accent-foreground: #f2f5ff;
+  --focus-ring: color-mix(in oklab, var(--accent) 62%, white 38%);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.875rem;
 }
 
 .dark {
@@ -18,10 +24,12 @@
   --muted: #0d111a;
   --muted-foreground: #8f9bb3;
   --card: #0d111a;
+  --surface-2: #121827;
   --card-foreground: #f2f5fb;
   --border: #20283a;
   --accent: #7c8cff;
   --accent-foreground: #eef1ff;
+  --focus-ring: color-mix(in oklab, var(--accent) 68%, white 32%);
 }
 
 @theme inline {
@@ -31,6 +39,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-surface-2: var(--surface-2);
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
@@ -45,13 +54,29 @@
 body {
   min-height: 100%;
   background:
-    radial-gradient(circle at 8% -12%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 36%),
-    radial-gradient(circle at 92% 0%, color-mix(in oklab, #8bbcff 10%, transparent), transparent 30%),
+    radial-gradient(circle at 10% -8%, color-mix(in oklab, var(--accent) 11%, transparent), transparent 34%),
+    radial-gradient(circle at 85% -12%, color-mix(in oklab, var(--accent) 8%, transparent), transparent 28%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
 a {
   color: inherit;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 35%, transparent);
 }

@@ -8,12 +8,12 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 
 const STAGE_COLORS: Record<VideoProjectStage, string> = {
-  IDEA: "text-sky-400 bg-sky-400/10 border-sky-400/20",
-  DRAFTING: "text-violet-400 bg-violet-400/10 border-violet-400/20",
-  RECORDING: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-  EDITING: "text-orange-400 bg-orange-400/10 border-orange-400/20",
-  REVIEW: "text-pink-400 bg-pink-400/10 border-pink-400/20",
-  PUBLISHED: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+  IDEA: "text-sky-300 bg-sky-400/10 border-sky-400/25",
+  DRAFTING: "text-violet-300 bg-violet-400/10 border-violet-400/25",
+  RECORDING: "text-amber-300 bg-amber-400/10 border-amber-400/25",
+  EDITING: "text-orange-300 bg-orange-400/10 border-orange-400/25",
+  REVIEW: "text-pink-300 bg-pink-400/10 border-pink-400/25",
+  PUBLISHED: "text-emerald-300 bg-emerald-400/10 border-emerald-400/25",
 };
 
 export default async function Home() {
@@ -30,8 +30,7 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Minimal header */}
-      <header className="flex items-center justify-between px-6 py-5 lg:px-10">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6 lg:px-10">
         <span className="text-sm font-semibold tracking-tight text-foreground">Keyframe</span>
         <div className="flex items-center gap-4">
           <ThemeToggle />
@@ -56,27 +55,25 @@ export default async function Home() {
         </div>
       </header>
 
-      {/* Centered content */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-20">
-        {/* Input */}
-        <section className="w-full max-w-xl">
-          <h1 className="mb-6 text-center text-2xl font-semibold tracking-tight text-foreground">
-            What video do you want to make?
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 pb-16 lg:px-10 lg:pb-20">
+        <section className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center">
+          <h1 className="mb-6 text-center text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
+            What kind of video do you want to make?
           </h1>
 
           <form>
-            <div className="flex items-center gap-3 rounded-full border border-border bg-card px-5 py-3.5 transition focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition duration-150 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
               <input
                 name="prompt"
                 type="text"
                 autoComplete="off"
-                placeholder="Describe your idea…"
+                placeholder="Describe your idea..."
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
               />
               {!userId && (
                 <Link
                   href="/login"
-                  className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-accent-foreground transition hover:brightness-105"
+                  className="shrink-0 rounded-md bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground transition duration-150 hover:brightness-105"
                 >
                   Sign in
                 </Link>
@@ -96,18 +93,24 @@ export default async function Home() {
           )}
         </section>
 
-        {/* Recent projects — only when logged in and have projects */}
         {recentProjects.length > 0 && (
-          <section className="mt-14 w-full max-w-3xl">
-            <div className="-mx-6 flex gap-3 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <section className="mt-10 w-full border-t border-border pt-6">
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">Recent Projects</h2>
+              <Link href="/projects" className="text-xs text-muted-foreground transition hover:text-foreground">
+                View all
+              </Link>
+            </div>
+
+            <div className="-mx-2 grid grid-cols-1 gap-3 px-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {recentProjects.map((project) => (
                 <Link
                   key={project.id}
                   href={`/projects/${project.id}`}
-                  className="group flex w-48 shrink-0 flex-col gap-3 rounded-lg border border-border bg-card p-4 transition hover:border-accent"
+                  className="group flex min-h-28 flex-col gap-3 rounded-xl border border-border bg-card p-4 transition duration-150 hover:border-accent"
                 >
                   <span
-                    className={`inline-flex w-fit items-center rounded border px-1.5 py-0.5 text-[10px] font-medium ${STAGE_COLORS[project.stage as VideoProjectStage]}`}
+                    className={`inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-[10px] font-medium tracking-wide ${STAGE_COLORS[project.stage as VideoProjectStage]}`}
                   >
                     {VIDEO_PROJECT_STAGE_LABELS[project.stage as VideoProjectStage]}
                   </span>
