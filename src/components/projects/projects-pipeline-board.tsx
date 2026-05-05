@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   closestCenter,
   DndContext,
@@ -95,6 +95,7 @@ function ProjectCard({
 }: {
   project: ProjectItem;
 }) {
+  const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: project.id,
   });
@@ -104,6 +105,11 @@ function ProjectCard({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      onClick={() => {
+        if (!isDragging) {
+          router.push(`/projects/${project.id}`);
+        }
+      }}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -113,20 +119,12 @@ function ProjectCard({
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <Link
-          href={`/projects/${project.id}`}
-          className="text-sm font-medium text-foreground transition hover:text-accent"
-        >
+        <p className="text-sm font-medium text-foreground transition hover:text-accent">
           {project.title}
-        </Link>
-        <button
-          type="button"
-          aria-label={`Drag ${project.title}`}
-          className="rounded-md border border-border p-1 text-muted-foreground"
-          tabIndex={-1}
-        >
+        </p>
+        <span className="rounded-md border border-border p-1 text-muted-foreground">
           <GripVertical size={14} />
-        </button>
+        </span>
       </div>
 
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
@@ -158,7 +156,11 @@ export function ProjectsPipelineBoard({ initialProjects }: Props) {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
