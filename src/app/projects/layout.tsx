@@ -35,7 +35,7 @@ export default async function ProjectsLayout({
       </header>
 
       <main className="w-full px-6 pb-10 lg:px-10 lg:pb-12">
-        <div className="border-t border-border pt-8">{children}</div>
+        <div className="pt-8">{children}</div>
       </main>
     </div>
   );

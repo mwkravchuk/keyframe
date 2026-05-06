@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -89,80 +88,7 @@ export default async function ProjectsPage() {
       </div>
 
       <div className="mx-auto mt-8 w-full max-w-6xl">
-        <div className="flex items-end justify-between gap-4 border-b border-border pb-6">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">Projects</h2>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="rounded-sm border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
-            >
-              Use video generator
-            </Link>
-
-            <details className="group relative">
-              <summary className="list-none rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90">
-                New project
-              </summary>
-              <div className="absolute right-0 z-20 mt-3 w-90 rounded-sm border border-border bg-card p-4 shadow-2xl shadow-black/20">
-                <form action={createProjectAction} className="space-y-3">
-                  <input type="hidden" name="stage" value="DRAFTING" />
-                  <div>
-                    <label htmlFor="title" className="text-xs text-muted-foreground">
-                      Title
-                    </label>
-                    <input
-                      id="title"
-                      name="title"
-                      required
-                      className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="concept" className="text-xs text-muted-foreground">
-                      Concept
-                    </label>
-                    <textarea
-                      id="concept"
-                      name="concept"
-                      rows={3}
-                      className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="nextStep" className="text-xs text-muted-foreground">
-                      Next step
-                    </label>
-                    <input
-                      id="nextStep"
-                      name="nextStep"
-                      className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="targetPublishAt" className="text-xs text-muted-foreground">
-                      Target publish date
-                    </label>
-                    <input
-                      id="targetPublishAt"
-                      name="targetPublishAt"
-                      type="date"
-                      className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full rounded-sm border border-border px-3 py-2 text-sm text-foreground transition hover:bg-muted"
-                  >
-                    Create project
-                  </button>
-                </form>
-              </div>
-            </details>
-          </div>
-        </div>
-
-        <ProjectsPipelineBoard initialProjects={projectItems} />
+        <ProjectsPipelineBoard initialProjects={projectItems} createProjectAction={createProjectAction} />
       </div>
     </section>
   );

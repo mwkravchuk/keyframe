@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   closestCenter,
   DndContext,
@@ -38,6 +39,7 @@ type ProjectItem = {
 
 type Props = {
   initialProjects: ProjectItem[];
+  createProjectAction: (formData: FormData) => Promise<void>;
 };
 
 const IDEA_STAGE: VideoProjectStage = "IDEA";
@@ -153,12 +155,7 @@ function IdeasSection({
       data-over={isOver}
       className="py-3 data-[over=true]:[&_.ideas-input]:border-accent"
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold tracking-wide text-foreground">Ideas</h3>
-        <span className="text-xs text-muted-foreground">{ideas.length}</span>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mb-3 border-b border-border pb-3">
+      <form onSubmit={handleSubmit} className="mb-3">
         <textarea
           value={line}
           onChange={(event) => setLine(event.target.value)}
@@ -300,7 +297,7 @@ function ProjectCardOverlay({ project }: { project: ProjectItem }) {
   );
 }
 
-export function ProjectsPipelineBoard({ initialProjects }: Props) {
+export function ProjectsPipelineBoard({ initialProjects, createProjectAction }: Props) {
   const [projects, setProjects] = useState(initialProjects);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
@@ -404,7 +401,78 @@ export function ProjectsPipelineBoard({ initialProjects }: Props) {
     >
       <IdeasSection ideas={ideas} onCreate={handleCreateIdea} />
 
-      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-10 flex items-center justify-between gap-4 pb-3">
+        <span className="text-sm font-semibold tracking-tight text-foreground">Projects</span>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="rounded-sm border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
+          >
+            Use video generator
+          </Link>
+          <details className="group relative">
+            <summary className="list-none cursor-pointer rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90">
+              New project
+            </summary>
+            <div className="absolute right-0 z-20 mt-3 w-90 rounded-sm border border-border bg-card p-4 shadow-2xl shadow-black/20">
+              <form action={createProjectAction} className="space-y-3">
+                <input type="hidden" name="stage" value="DRAFTING" />
+                <div>
+                  <label htmlFor="proj-title" className="text-xs text-muted-foreground">
+                    Title
+                  </label>
+                  <input
+                    id="proj-title"
+                    name="title"
+                    required
+                    className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="proj-concept" className="text-xs text-muted-foreground">
+                    Concept
+                  </label>
+                  <textarea
+                    id="proj-concept"
+                    name="concept"
+                    rows={3}
+                    className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="proj-nextStep" className="text-xs text-muted-foreground">
+                    Next step
+                  </label>
+                  <input
+                    id="proj-nextStep"
+                    name="nextStep"
+                    className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="proj-targetPublishAt" className="text-xs text-muted-foreground">
+                    Target publish date
+                  </label>
+                  <input
+                    id="proj-targetPublishAt"
+                    name="targetPublishAt"
+                    type="date"
+                    className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full rounded-sm border border-border px-3 py-2 text-sm text-foreground transition hover:bg-muted"
+                >
+                  Create project
+                </button>
+              </form>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {KANBAN_STAGES.map((stage) => (
           <StageColumn
             key={stage}
