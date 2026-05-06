@@ -35,15 +35,36 @@ type ProjectItem = {
   notes: string | null;
   nextStep: string | null;
   stage: VideoProjectStage;
+  youtubeChannelId: string | null;
+  youtubeChannelTitle: string | null;
+};
+
+type ChannelInfo = {
+  channelId: string;
+  title: string | null;
 };
 
 type Props = {
   initialProjects: ProjectItem[];
+  channels: ChannelInfo[];
   createProjectAction: (formData: FormData) => Promise<void>;
 };
 
 const IDEA_STAGE: VideoProjectStage = "IDEA";
 const KANBAN_STAGES = ["DRAFTING", "RECORDING", "EDITING", "PUBLISHED"] as const;
+
+const CHANNEL_PILL_COLORS = [
+  "border-sky-400/35 bg-sky-400/14 text-sky-300",
+  "border-violet-400/35 bg-violet-400/14 text-violet-300",
+  "border-emerald-400/35 bg-emerald-400/14 text-emerald-300",
+  "border-amber-400/35 bg-amber-400/14 text-amber-300",
+  "border-rose-400/35 bg-rose-400/14 text-rose-300",
+];
+
+function getChannelPillColor(channelId: string, channels: ChannelInfo[]): string {
+  const index = channels.findIndex((c) => c.channelId === channelId);
+  return CHANNEL_PILL_COLORS[(index >= 0 ? index : 0) % CHANNEL_PILL_COLORS.length];
+}
 
 type KanbanStage = (typeof KANBAN_STAGES)[number];
 
@@ -110,9 +131,11 @@ async function createIdea(title: string, notes: string) {
 
 function IdeasSection({
   ideas,
+  channels,
   onCreate,
 }: {
   ideas: ProjectItem[];
+  channels: ChannelInfo[];
   onCreate: (title: string, notes: string) => Promise<void>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: IDEA_STAGE });
@@ -174,7 +197,7 @@ function IdeasSection({
             </p>
           ) : (
             ideas.map((idea) => (
-              <ProjectCard key={idea.id} project={idea} kind="idea" />
+              <ProjectCard key={idea.id} project={idea} kind="idea" channels={channels} />
             ))
           )}
         </div>
@@ -186,9 +209,11 @@ function IdeasSection({
 function StageColumn({
   stage,
   projects,
+  channels,
 }: {
   stage: KanbanStage;
   projects: ProjectItem[];
+  channels: ChannelInfo[];
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
   const style = STAGE_STYLES[stage];
@@ -214,7 +239,7 @@ function StageColumn({
             </p>
           ) : (
             projects.map((project) => (
-              <ProjectCard key={project.id} project={project} kind="project" />
+              <ProjectCard key={project.id} project={project} kind="project" channels={channels} />
             ))
           )}
         </div>
@@ -226,9 +251,11 @@ function StageColumn({
 function ProjectCard({
   project,
   kind,
+  channels,
 }: {
   project: ProjectItem;
   kind: "idea" | "project";
+  channels: ChannelInfo[];
 }) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -274,6 +301,18 @@ function ProjectCard({
           <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
             {project.notes || project.nextStep || project.concept || "No context added yet."}
           </p>
+
+          {project.youtubeChannelId && project.youtubeChannelTitle && (
+            <div className="mt-2">
+              <span
+                className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none ${
+                  getChannelPillColor(project.youtubeChannelId, channels)
+                }`}
+              >
+                {project.youtubeChannelTitle}
+              </span>
+            </div>
+          )}
         </>
       )}
     </article>
@@ -297,7 +336,7 @@ function ProjectCardOverlay({ project }: { project: ProjectItem }) {
   );
 }
 
-export function ProjectsPipelineBoard({ initialProjects, createProjectAction }: Props) {
+export function ProjectsPipelineBoard({ initialProjects, channels, createProjectAction }: Props) {
   const [projects, setProjects] = useState(initialProjects);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
@@ -399,7 +438,7 @@ export function ProjectsPipelineBoard({ initialProjects, createProjectAction }: 
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <IdeasSection ideas={ideas} onCreate={handleCreateIdea} />
+      <IdeasSection ideas={ideas} channels={channels} onCreate={handleCreateIdea} />
 
       <div className="mt-10 flex items-center justify-between gap-4 pb-3">
         <span className="text-sm font-semibold tracking-tight text-foreground">Projects</span>
@@ -478,6 +517,7 @@ export function ProjectsPipelineBoard({ initialProjects, createProjectAction }: 
             key={stage}
             stage={stage}
             projects={projectsByStage[stage]}
+            channels={channels}
           />
         ))}
       </div>

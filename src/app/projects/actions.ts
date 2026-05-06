@@ -93,6 +93,7 @@ export async function updateProjectAction(formData: FormData) {
   const nextStep = String(formData.get("nextStep") ?? "").trim();
   const stage = parseStage(formData.get("stage"));
   const targetPublishAtRaw = String(formData.get("targetPublishAt") ?? "").trim();
+  const youtubeChannelId = String(formData.get("youtubeChannelId") ?? "").trim() || null;
 
   if (!id || !title) {
     return;
@@ -110,6 +111,7 @@ export async function updateProjectAction(formData: FormData) {
       nextStep: nextStep || null,
       stage,
       targetPublishAt: targetPublishAtRaw ? new Date(targetPublishAtRaw) : null,
+      youtubeChannelId,
     },
   });
 

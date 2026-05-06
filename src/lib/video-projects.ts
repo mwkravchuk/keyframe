@@ -16,6 +16,7 @@ export const VIDEO_PROJECT_STAGE_LABELS: Record<VideoProjectStage, string> = {
   RECORDING: "Recording",
   EDITING: "Editing",
   PUBLISHED: "Published",
+  REVIEW: "Review",
 };
 
 export function getAdjacentStage(

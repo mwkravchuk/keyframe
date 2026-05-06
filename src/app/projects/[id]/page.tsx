@@ -32,6 +32,12 @@ export default async function ProjectDetailPage({
     notFound();
   }
 
+  const channels = await prisma.youtubeChannel.findMany({
+    where: { userId },
+    select: { channelId: true, title: true },
+    orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
+  });
+
   const targetPublishAt = project.targetPublishAt
     ? project.targetPublishAt.toISOString().slice(0, 10)
     : "";
@@ -128,6 +134,27 @@ export default async function ProjectDetailPage({
             className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
           />
         </div>
+
+        {channels.length > 0 && (
+          <div>
+            <label htmlFor="youtubeChannelId" className="text-xs text-muted-foreground">
+              YouTube channel
+            </label>
+            <select
+              id="youtubeChannelId"
+              name="youtubeChannelId"
+              defaultValue={project.youtubeChannelId ?? ""}
+              className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">No channel assigned</option>
+              {channels.map((c) => (
+                <option key={c.channelId} value={c.channelId}>
+                  {c.title ?? c.channelId}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <button
           type="submit"

@@ -5,8 +5,45 @@ import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { prisma } from "@/lib/prisma";
 import { createProjectAction } from "./actions";
 import { ProjectsPipelineBoard } from "@/components/projects/projects-pipeline-board";
+import { YoutubeProfileSyncButton } from "@/components/projects/youtube-profile-sync-button";
+import { CreatorAvatarImage, CreatorBannerImage } from "@/components/projects/creator-profile-media";
+import { YoutubeChannelSelector } from "@/components/projects/youtube-channel-selector";
+import { ConnectYoutubeChannelButton } from "@/components/projects/connect-youtube-channel-button";
+import { YoutubeLinkResolver } from "@/components/projects/youtube-link-resolver";
 
-export default async function ProjectsPage() {
+function withCacheBust(url: string | null, linkedAt?: Date | null) {
+  if (!url) {
+    return null;
+  }
+
+  if (!linkedAt) {
+    return url;
+  }
+
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${linkedAt.getTime()}`;
+}
+
+function toHighResYoutubeBanner(url: string | null) {
+  if (!url) {
+    return null;
+  }
+
+  if (!url.includes("yt3.googleusercontent.com") || url.includes("=")) {
+    return url;
+  }
+
+  return `${url}=w2048`;
+}
+
+export default async function ProjectsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ link?: string }>;
+}) {
+  const params = await searchParams;
+  const shouldResolveLink = params.link === "1";
+
   const session = await getServerSession(authOptions);
   const userId = await getUserIdWithDevBypass(session?.user?.id);
 
@@ -19,13 +56,38 @@ export default async function ProjectsPage() {
     select: {
       name: true,
       image: true,
+      youtubeAvatarUrl: true,
+      youtubeBannerUrl: true,
+      youtubeChannelTitle: true,
+      youtubeLinkedAt: true,
+      youtubeChannels: {
+        select: {
+          channelId: true,
+          title: true,
+          isActive: true,
+        },
+        orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
+      },
     },
   });
 
   const projects = await prisma.videoProject.findMany({
     where: { userId },
     orderBy: [{ updatedAt: "desc" }],
+    select: {
+      id: true,
+      title: true,
+      concept: true,
+      notes: true,
+      nextStep: true,
+      stage: true,
+      youtubeChannelId: true,
+    },
   });
+
+  const channelTitleMap = new Map(
+    (creator?.youtubeChannels ?? []).map((c) => [c.channelId, c.title]),
+  );
 
   const projectItems = projects.map((project) => ({
     id: project.id,
@@ -34,11 +96,30 @@ export default async function ProjectsPage() {
     notes: project.notes,
     nextStep: project.nextStep,
     stage: project.stage,
+    youtubeChannelId: project.youtubeChannelId,
+    youtubeChannelTitle: project.youtubeChannelId
+      ? (channelTitleMap.get(project.youtubeChannelId) ?? null)
+      : null,
   }));
 
-  const creatorName = creator?.name?.trim() || session?.user?.name?.trim() || "Creator";
-  const creatorAvatarUrl = creator?.image || session?.user?.image || null;
-  const creatorBannerUrl: string | null = null;
+  const creatorName = creator?.youtubeChannelTitle?.trim() || creator?.name?.trim() || session?.user?.name?.trim() || "Creator";
+  const creatorAvatarPrimaryUrl = withCacheBust(
+    creator?.youtubeAvatarUrl || null,
+    creator?.youtubeLinkedAt,
+  );
+  const creatorAvatarFallbackUrl = withCacheBust(
+    creator?.image || session?.user?.image || null,
+    creator?.youtubeLinkedAt,
+  );
+  const creatorBannerPrimaryUrl = withCacheBust(
+    toHighResYoutubeBanner(creator?.youtubeBannerUrl || null),
+    creator?.youtubeLinkedAt,
+  );
+  const creatorBannerFallbackUrl = withCacheBust(
+    creator?.youtubeBannerUrl || null,
+    creator?.youtubeLinkedAt,
+  );
+  const hasYoutubeProfile = Boolean(creator?.youtubeAvatarUrl || creator?.youtubeBannerUrl);
   const creatorInitials = creatorName
     .split(" ")
     .filter(Boolean)
@@ -48,47 +129,43 @@ export default async function ProjectsPage() {
 
   return (
     <section>
-        <div className="relative left-1/2 w-screen -translate-x-1/2 border-t border-border">
-          <div className="relative h-36 border-b border-border bg-surface-2 sm:h-44 lg:h-52">
-          {creatorBannerUrl ? (
-            <img
-              src={creatorBannerUrl}
-              alt={`${creatorName} banner`}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <>
-              <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(255,255,255,0.07),transparent_40%),linear-gradient(20deg,rgba(255,255,255,0.04),transparent_55%),repeating-linear-gradient(120deg,rgba(255,255,255,0.03)_0,rgba(255,255,255,0.03)_2px,transparent_2px,transparent_22px)]" />
-              <div className="absolute inset-x-6 bottom-3 mx-auto w-full max-w-6xl px-6 text-[11px] font-medium tracking-wide text-muted-foreground/90 lg:px-10">
-                YouTube banner will appear here after integration.
-              </div>
-            </>
-          )}
-        </div>
+      <YoutubeLinkResolver shouldResolve={shouldResolveLink} />
+
+      <div className="relative left-1/2 w-screen -translate-x-1/2 border-t border-border">
+        <CreatorBannerImage
+          creatorName={creatorName}
+          bannerPrimaryUrl={creatorBannerPrimaryUrl}
+          bannerFallbackUrl={creatorBannerFallbackUrl}
+        />
 
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-5 px-6 pb-5 pt-4 lg:px-10">
           <div className="flex items-center gap-4">
-            <div className="relative -mt-14 flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-border bg-background text-sm font-semibold text-foreground shadow-lg shadow-black/15 sm:-mt-16 sm:h-32 sm:w-32">
-              {creatorAvatarUrl ? (
-                <img
-                  src={creatorAvatarUrl}
-                  alt={`${creatorName} avatar`}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span>{creatorInitials}</span>
-              )}
-            </div>
+            <CreatorAvatarImage
+              creatorName={creatorName}
+              creatorInitials={creatorInitials}
+              avatarPrimaryUrl={creatorAvatarPrimaryUrl}
+              avatarFallbackUrl={creatorAvatarFallbackUrl}
+            />
 
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{creatorName}</h1>
             </div>
           </div>
+
+          <div className="flex flex-col items-end gap-2">
+            <YoutubeChannelSelector channels={creator?.youtubeChannels ?? []} />
+            <ConnectYoutubeChannelButton />
+            <YoutubeProfileSyncButton hasYoutubeProfile={hasYoutubeProfile} />
+          </div>
         </div>
       </div>
 
       <div className="mx-auto mt-8 w-full max-w-6xl">
-        <ProjectsPipelineBoard initialProjects={projectItems} createProjectAction={createProjectAction} />
+        <ProjectsPipelineBoard
+          initialProjects={projectItems}
+          channels={creator?.youtubeChannels ?? []}
+          createProjectAction={createProjectAction}
+        />
       </div>
     </section>
   );
