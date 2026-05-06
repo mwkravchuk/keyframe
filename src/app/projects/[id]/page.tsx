@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { prisma } from "@/lib/prisma";
 import { VIDEO_PROJECT_STAGE_LABELS, VIDEO_PROJECT_STAGES } from "@/lib/video-projects";
 import { updateProjectAction } from "../actions";
@@ -11,7 +13,7 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
+  const userId = await getUserIdWithDevBypass(session?.user?.id);
 
   if (!userId) {
     redirect("/login");
@@ -35,7 +37,10 @@ export default async function ProjectDetailPage({
     : "";
 
   return (
-    <section className="max-w-3xl">
+    <section className="mx-auto w-full max-w-3xl">
+      <Link href="/projects" className="mb-4 inline-block text-xs text-muted-foreground transition hover:text-foreground">
+        Back to board
+      </Link>
       <h1 className="text-3xl font-semibold tracking-tight">{project.title}</h1>
       <p className="mt-2 text-sm text-muted-foreground">Edit project details and stage.</p>
 
@@ -51,7 +56,7 @@ export default async function ProjectDetailPage({
             name="title"
             defaultValue={project.title}
             required
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
           />
         </div>
 
@@ -63,7 +68,7 @@ export default async function ProjectDetailPage({
             id="stage"
             name="stage"
             defaultValue={project.stage}
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
           >
             {VIDEO_PROJECT_STAGES.map((stage) => (
               <option key={stage} value={stage}>
@@ -82,7 +87,7 @@ export default async function ProjectDetailPage({
             name="concept"
             defaultValue={project.concept ?? ""}
             rows={4}
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
           />
         </div>
 
@@ -95,7 +100,7 @@ export default async function ProjectDetailPage({
             name="notes"
             defaultValue={project.notes ?? ""}
             rows={6}
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
           />
         </div>
 
@@ -107,7 +112,7 @@ export default async function ProjectDetailPage({
             id="nextStep"
             name="nextStep"
             defaultValue={project.nextStep ?? ""}
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
           />
         </div>
 
@@ -120,13 +125,13 @@ export default async function ProjectDetailPage({
             name="targetPublishAt"
             type="date"
             defaultValue={targetPublishAt}
-            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
           />
         </div>
 
         <button
           type="submit"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:brightness-105"
+          className="rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
         >
           Save changes
         </button>

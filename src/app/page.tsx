@@ -62,7 +62,7 @@ export default async function Home() {
           </h1>
 
           <form>
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition duration-150 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+            <div className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-3.5 transition duration-150 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
               <input
                 name="prompt"
                 type="text"
@@ -73,7 +73,7 @@ export default async function Home() {
               {!userId && (
                 <Link
                   href="/login"
-                  className="shrink-0 rounded-md bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground transition duration-150 hover:brightness-105"
+                  className="shrink-0 rounded-sm bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground transition duration-150 hover:opacity-90"
                 >
                   Sign in
                 </Link>
@@ -107,7 +107,7 @@ export default async function Home() {
                 <Link
                   key={project.id}
                   href={`/projects/${project.id}`}
-                  className="group flex min-h-28 flex-col gap-3 rounded-xl border border-border bg-card p-4 transition duration-150 hover:border-accent"
+                  className="group flex min-h-28 flex-col gap-3 rounded-md border border-border bg-card p-4 transition duration-150 hover:border-accent"
                 >
                   <span
                     className={`inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-[10px] font-medium tracking-wide ${STAGE_COLORS[project.stage as VideoProjectStage]}`}

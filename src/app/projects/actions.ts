@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import { VideoProjectStage } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
+import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { prisma } from "@/lib/prisma";
 
 async function getCurrentUserId() {
   const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
+  const userId = await getUserIdWithDevBypass(session?.user?.id);
 
   if (!userId) {
     throw new Error("Unauthorized");
@@ -36,6 +37,7 @@ export async function createProjectAction(formData: FormData) {
   const concept = String(formData.get("concept") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const nextStep = String(formData.get("nextStep") ?? "").trim();
+  const stage = parseStage(formData.get("stage"));
   const targetPublishAtRaw = String(formData.get("targetPublishAt") ?? "").trim();
 
   if (!title) {
@@ -48,6 +50,7 @@ export async function createProjectAction(formData: FormData) {
       title,
       concept: concept || null,
       notes: notes || null,
+      stage,
       nextStep: nextStep || null,
       targetPublishAt: targetPublishAtRaw ? new Date(targetPublishAtRaw) : null,
     },

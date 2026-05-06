@@ -7,7 +7,7 @@ export default function LoginPage() {
     <main className="relative min-h-screen overflow-hidden bg-background px-6 py-7 lg:px-14">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_-10%,color-mix(in_oklab,var(--accent)_14%,transparent),transparent_36%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_-10%,color-mix(in_oklab,var(--foreground)_9%,transparent),transparent_36%)]"
       />
 
       <header className="relative z-10 flex w-full items-center justify-between">

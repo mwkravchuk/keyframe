@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { VideoProjectStage } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
+import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
@@ -9,7 +10,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await getServerSession(authOptions);
-  const userId = session?.user?.id;
+  const userId = await getUserIdWithDevBypass(session?.user?.id);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

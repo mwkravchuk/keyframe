@@ -26,17 +26,23 @@ Think: Linear + film production tools.
 
 ### Dark Mode (primary)
 
-- Background: near-black / graphite (#06080d)
-- Surface: slightly lifted dark (#0d111a)
-- Borders: subtle (#20283a)
-- Primary text: near white (#f2f5fb)
-- Muted text: desaturated blue-gray (#8f9bb3)
+- Background: near-black (#060606)
+- Surface: lifted charcoal (#0d0d0d)
+- Borders: neutral dark gray (#2a2a2a)
+- Primary text: near white (#f5f5f5)
+- Muted text: neutral mid-gray (#9a9a9a)
 
 ### Accent
 
-- Use ONE accent color:
-  - blue-violet OR soft cyan
-- Example: #7c8cff or #8bbcff
+- Base UI accent is monochrome only.
+- Dark mode: white accent on black surfaces.
+- Light mode: black accent on white surfaces.
+
+### Stage Color Exception
+
+- Rainbow stage colors are allowed only for pipeline semantics.
+- Stage chips, lane badges, and stage counts may use color.
+- Global UI chrome (headers, buttons, forms, shells) remains black/white.
 
 ### Avoid
 
@@ -61,9 +67,9 @@ Think: Linear + film production tools.
 ### Buttons
 
 - Clean, minimal
-- Slight rounding (no pill-shaped blobs everywhere)
+- Sharp corners or very slight rounding
 - Subtle hover states
-- Primary button uses accent color
+- Primary button uses monochrome accent
 - Secondary = ghost or outline
 
 ### Cards
@@ -71,7 +77,7 @@ Think: Linear + film production tools.
 - Only when necessary
 - Subtle borders
 - No heavy shadows
-- Medium radius (rounded-xl max)
+- Keep corners sharp (rounded-sm to rounded-md)
 
 ---
 
@@ -112,15 +118,16 @@ Use this section as the source of truth when building new screens.
 
 #### Color Tokens
 
-- `--background`: `#06080d`
-- `--surface`: `#0d111a`
-- `--surface-2`: `#121827`
-- `--border`: `#20283a`
-- `--text`: `#f2f5fb`
-- `--text-muted`: `#8f9bb3`
-- `--accent`: `#7c8cff`
-- `--accent-foreground`: `#eef1ff`
-- `--focus-ring`: `color-mix(in oklab, var(--accent) 65%, white 35%)`
+- `--background`: `#060606` (dark), `#f5f5f5` (light)
+- `--surface`: `#0d0d0d` (dark), `#ffffff` (light)
+- `--surface-2`: `#131313` (dark), `#efefef` (light)
+- `--border`: `#2a2a2a` (dark), `#d4d4d4` (light)
+- `--text`: `#f5f5f5` (dark), `#0a0a0a` (light)
+- `--text-muted`: `#9a9a9a` (dark), `#5e5e5e` (light)
+- `--accent`: monochrome (`#f5f5f5` dark / `#0a0a0a` light)
+- `--accent-foreground`: inverse monochrome
+- `--focus-ring`: grayscale ring derived from foreground
+- Stage colors are semantic-only and must not leak into core chrome.
 
 #### Spacing Scale
 
@@ -135,10 +142,10 @@ Use this section as the source of truth when building new screens.
 
 #### Radius Scale
 
-- `--radius-sm`: `0.375rem`
-- `--radius-md`: `0.5rem`
-- `--radius-lg`: `0.75rem`
-- `--radius-xl`: `0.875rem`
+- `--radius-sm`: `0.125rem`
+- `--radius-md`: `0.2rem`
+- `--radius-lg`: `0.3rem`
+- `--radius-xl`: `0.4rem`
 
 #### Typography Scale
 
@@ -151,10 +158,25 @@ Use this section as the source of truth when building new screens.
 
 ### Layout Rules
 
-- Desktop app shell: `280px` sidebar + fluid main content.
+- Projects and dashboard pages use a top header shell.
+- Decorative media banners may be full-bleed across viewport width.
 - Page content max-width: `1120px`.
 - Vertical section rhythm: `--space-10` or `--space-12`.
 - Dividers over containers whenever possible.
+
+### Kanban Layout Rules
+
+- Desktop should prioritize seeing all stages at once.
+- Use responsive grid columns (`5` on wide desktop, `2-3` on narrower breakpoints).
+- Horizontal scrolling is fallback-only for constrained screens, not default desktop behavior.
+- Keep lane widths compact and card copy concise to preserve full-board visibility.
+
+### Deferred Features
+
+- **Review / Insights stage**: Currently not shown as a default pipeline stage.
+  - Will only be available contextually when a video is published to YouTube and linked in the app.
+  - YouTube Creator Studio already provides insights, so app integration deferred until clearer UX emerges.
+  - If added: should be accessible from Published video details, not as a default Kanban column.
 
 ### Component Rules
 

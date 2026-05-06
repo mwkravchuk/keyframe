@@ -19,7 +19,7 @@ export function SignOutButton({ variant = "sidebar" }: { variant?: "sidebar" | "
     <button
       type="button"
       onClick={() => signOut({ callbackUrl: "/" })}
-      className="w-full rounded-md border border-border px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+      className="w-full rounded-sm border border-border px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
     >
       Sign out
     </button>
