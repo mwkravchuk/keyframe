@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import {
   closestCenter,
   DndContext,
@@ -42,6 +43,8 @@ type ProjectItem = {
 type ChannelInfo = {
   channelId: string;
   title: string | null;
+  avatarUrl?: string | null;
+  isActive?: boolean;
 };
 
 type Props = {
@@ -50,21 +53,10 @@ type Props = {
   createProjectAction: (formData: FormData) => Promise<void>;
 };
 
+type ChannelScope = "all" | "active";
+
 const IDEA_STAGE: VideoProjectStage = "IDEA";
 const KANBAN_STAGES = ["DRAFTING", "RECORDING", "EDITING", "PUBLISHED"] as const;
-
-const CHANNEL_PILL_COLORS = [
-  "border-sky-400/35 bg-sky-400/14 text-sky-300",
-  "border-violet-400/35 bg-violet-400/14 text-violet-300",
-  "border-emerald-400/35 bg-emerald-400/14 text-emerald-300",
-  "border-amber-400/35 bg-amber-400/14 text-amber-300",
-  "border-rose-400/35 bg-rose-400/14 text-rose-300",
-];
-
-function getChannelPillColor(channelId: string, channels: ChannelInfo[]): string {
-  const index = channels.findIndex((c) => c.channelId === channelId);
-  return CHANNEL_PILL_COLORS[(index >= 0 ? index : 0) % CHANNEL_PILL_COLORS.length];
-}
 
 type KanbanStage = (typeof KANBAN_STAGES)[number];
 
@@ -112,13 +104,13 @@ async function updateProjectStage(projectId: string, stage: VideoProjectStage) {
   }
 }
 
-async function createIdea(title: string, notes: string) {
+async function createIdea(title: string, notes: string, youtubeChannelId?: string | null) {
   const response = await fetch("/api/projects", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ title, notes }),
+    body: JSON.stringify({ title, notes, youtubeChannelId: youtubeChannelId ?? null }),
   });
 
   if (!response.ok) {
@@ -261,6 +253,11 @@ function ProjectCard({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: project.id,
   });
+  const channel = project.youtubeChannelId
+    ? channels.find((c) => c.channelId === project.youtubeChannelId)
+    : null;
+  const channelAvatarUrl = channel?.avatarUrl ?? null;
+  const channelInitial = (channel?.title?.trim()?.[0] ?? "Y").toUpperCase();
 
   return (
     <article
@@ -293,26 +290,34 @@ function ProjectCard({
             <p className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground transition hover:text-accent">
               {project.title}
             </p>
-            <span className="rounded-sm border border-border p-1 text-muted-foreground opacity-20 transition group-hover:opacity-100">
-              <GripVertical size={14} />
-            </span>
+            <div className="flex items-center gap-1.5">
+              {project.youtubeChannelId && (
+                <span
+                  className="inline-flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-[9px] font-semibold text-muted-foreground"
+                  title={channel?.title ?? project.youtubeChannelTitle ?? "YouTube channel"}
+                >
+                  {channelAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={channelAvatarUrl}
+                      alt={channel?.title ?? "YouTube channel avatar"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span>{channelInitial}</span>
+                  )}
+                </span>
+              )}
+
+              <span className="rounded-sm border border-border p-1 text-muted-foreground opacity-20 transition group-hover:opacity-100">
+                <GripVertical size={14} />
+              </span>
+            </div>
           </div>
 
           <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
             {project.notes || project.nextStep || project.concept || "No context added yet."}
           </p>
-
-          {project.youtubeChannelId && project.youtubeChannelTitle && (
-            <div className="mt-2">
-              <span
-                className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none ${
-                  getChannelPillColor(project.youtubeChannelId, channels)
-                }`}
-              >
-                {project.youtubeChannelTitle}
-              </span>
-            </div>
-          )}
         </>
       )}
     </article>
@@ -337,7 +342,35 @@ function ProjectCardOverlay({ project }: { project: ProjectItem }) {
 }
 
 export function ProjectsPipelineBoard({ initialProjects, channels, createProjectAction }: Props) {
+  const router = useRouter();
   const [projects, setProjects] = useState(initialProjects);
+  const createProjectDetailsRef = useRef<HTMLDetailsElement>(null);
+  const channelDetailsRef = useRef<HTMLDetailsElement>(null);
+  const [channelScope, setChannelScope] = useState<ChannelScope>("all");
+  const [channelActionError, setChannelActionError] = useState<string | null>(null);
+  const [isSwitchingChannel, setIsSwitchingChannel] = useState(false);
+  const [isConnectingChannel, setIsConnectingChannel] = useState(false);
+  const activeChannelId = useMemo(
+    () => channels.find((c) => c.isActive)?.channelId ?? channels[0]?.channelId ?? null,
+    [channels],
+  );
+  const activeChannelTitle = useMemo(() => {
+    if (!activeChannelId) {
+      return null;
+    }
+
+    return channels.find((c) => c.channelId === activeChannelId)?.title ?? activeChannelId;
+  }, [activeChannelId, channels]);
+
+  useEffect(() => {
+    setProjects(initialProjects);
+  }, [initialProjects]);
+
+  useEffect(() => {
+    if (channelScope === "active" && !activeChannelId) {
+      setChannelScope("all");
+    }
+  }, [channelScope, activeChannelId]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -351,21 +384,29 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
     }),
   );
 
+  const visibleProjects = useMemo(() => {
+    if (channelScope !== "active" || !activeChannelId) {
+      return projects;
+    }
+
+    return projects.filter((project) => project.youtubeChannelId === activeChannelId);
+  }, [projects, channelScope, activeChannelId]);
+
   const ideas = useMemo(
-    () => projects.filter((project) => project.stage === IDEA_STAGE),
-    [projects],
+    () => visibleProjects.filter((project) => project.stage === IDEA_STAGE),
+    [visibleProjects],
   );
 
   const projectsByStage = useMemo(() => {
     return KANBAN_STAGES.reduce<Record<KanbanStage, ProjectItem[]>>((acc, stage) => {
-      acc[stage] = projects.filter((project) => project.stage === stage);
+      acc[stage] = visibleProjects.filter((project) => project.stage === stage);
       return acc;
     }, {} as Record<KanbanStage, ProjectItem[]>);
-  }, [projects]);
+  }, [visibleProjects]);
 
   const activeProject = useMemo(
-    () => projects.find((project) => project.id === activeProjectId) ?? null,
-    [projects, activeProjectId],
+    () => visibleProjects.find((project) => project.id === activeProjectId) ?? null,
+    [visibleProjects, activeProjectId],
   );
 
   function handleDragStart(event: DragStartEvent) {
@@ -373,8 +414,15 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
   }
 
   async function handleCreateIdea(title: string, notes: string) {
-    const project = await createIdea(title, notes);
-    setProjects((current) => [project, ...current]);
+    const project = await createIdea(title, notes, activeChannelId);
+    const channelTitleMap = new Map(channels.map((c) => [c.channelId, c.title]));
+    const enriched = {
+      ...project,
+      youtubeChannelTitle: project.youtubeChannelId
+        ? (channelTitleMap.get(project.youtubeChannelId) ?? null)
+        : null,
+    };
+    setProjects((current) => [enriched, ...current]);
   }
 
   async function handleMove(projectId: string, stage: VideoProjectStage) {
@@ -410,14 +458,14 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
     const projectId = String(active.id);
     const targetId = String(over.id);
 
-    const project = projects.find((item) => item.id === projectId);
+    const project = visibleProjects.find((item) => item.id === projectId);
     if (!project) {
       return;
     }
 
     const targetStage = [IDEA_STAGE, ...KANBAN_STAGES].includes(targetId as VideoProjectStage)
       ? (targetId as VideoProjectStage)
-      : projects.find((item) => item.id === targetId)?.stage;
+      : visibleProjects.find((item) => item.id === targetId)?.stage;
 
     if (!targetStage || targetStage === project.stage) {
       return;
@@ -430,6 +478,72 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
     setActiveProjectId(null);
   }
 
+  async function handleChooseChannel(channelId: string) {
+    if (!channelId || isSwitchingChannel) {
+      return;
+    }
+
+    setChannelActionError(null);
+    setIsSwitchingChannel(true);
+
+    try {
+      const response = await fetch("/api/youtube/channels/active", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ channelId }),
+      });
+
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to switch channel.");
+      }
+
+      setChannelScope("active");
+      channelDetailsRef.current?.removeAttribute("open");
+      router.refresh();
+    } catch (error) {
+      setChannelActionError(error instanceof Error ? error.message : "Failed to switch channel.");
+    } finally {
+      setIsSwitchingChannel(false);
+    }
+  }
+
+  async function handleConnectChannel() {
+    if (isConnectingChannel) {
+      return;
+    }
+
+    setChannelActionError(null);
+    setIsConnectingChannel(true);
+
+    try {
+      const response = await fetch("/api/youtube/link-context", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error || "Failed to prepare channel linking.");
+      }
+
+      await signIn(
+        "google",
+        { callbackUrl: "/projects?link=1" },
+        {
+          prompt: "select_account consent",
+          scope: "openid email profile https://www.googleapis.com/auth/youtube.readonly",
+          access_type: "offline",
+          include_granted_scopes: "false",
+        },
+      );
+    } catch (error) {
+      setChannelActionError(error instanceof Error ? error.message : "Failed to connect channel.");
+      setIsConnectingChannel(false);
+    }
+  }
+
   return (
     <DndContext
       sensors={sensors}
@@ -438,10 +552,93 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
+      <div className="flex items-center justify-between gap-4 pb-4">
+        <span className="text-sm font-semibold tracking-tight text-foreground">Projects</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setChannelScope("all")}
+            className={`h-9 rounded-sm border px-3 text-sm font-medium transition ${
+              channelScope === "all"
+                ? "border-foreground/35 text-foreground"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            All channels
+          </button>
+
+          <details ref={channelDetailsRef} className="relative">
+            <summary
+              className={`flex h-9 w-56 list-none cursor-pointer items-center justify-between rounded-sm border px-3 text-sm transition ${
+                channelScope === "active"
+                  ? "border-foreground/35 text-foreground"
+                  : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span className="truncate">
+                {channelScope === "active" && activeChannelTitle
+                  ? activeChannelTitle
+                  : "Choose channel"}
+              </span>
+              <span className="ml-2 text-xs">▾</span>
+            </summary>
+
+            <div className="absolute right-0 z-20 mt-2 w-72 rounded-sm border border-border bg-card p-2 shadow-2xl shadow-black/20">
+              <div className="max-h-64 space-y-1 overflow-auto pr-1">
+                {channels.length === 0 ? (
+                  <p className="rounded-sm px-2 py-2 text-xs text-muted-foreground">
+                    No linked channels yet.
+                  </p>
+                ) : (
+                  channels.map((channel) => {
+                    const isActive = channel.channelId === activeChannelId;
+
+                    return (
+                      <button
+                        key={channel.channelId}
+                        type="button"
+                        disabled={isSwitchingChannel}
+                        onClick={() => {
+                          void handleChooseChannel(channel.channelId);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-sm border px-2 py-2 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                          isActive
+                            ? "border-foreground/35 text-foreground"
+                            : "border-border text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <span className="truncate">{channel.title?.trim() || channel.channelId}</span>
+                        {isActive ? <span className="ml-2 shrink-0 text-[10px]">Active</span> : null}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="mt-2 border-t border-border pt-2">
+                <button
+                  type="button"
+                  disabled={isConnectingChannel}
+                  onClick={() => {
+                    void handleConnectChannel();
+                  }}
+                  className="w-full rounded-sm border border-border px-2 py-2 text-left text-xs text-muted-foreground transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isConnectingChannel ? "Opening Google..." : "Connect new channel"}
+                </button>
+              </div>
+
+              {channelActionError ? (
+                <p className="mt-2 px-1 text-[11px] text-rose-400">{channelActionError}</p>
+              ) : null}
+            </div>
+          </details>
+        </div>
+      </div>
+
       <IdeasSection ideas={ideas} channels={channels} onCreate={handleCreateIdea} />
 
-      <div className="mt-10 flex items-center justify-between gap-4 pb-3">
-        <span className="text-sm font-semibold tracking-tight text-foreground">Projects</span>
+      <div className="flex items-center justify-between gap-3 pb-3">
         <div className="flex items-center gap-3">
           <Link
             href="/"
@@ -449,13 +646,22 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
           >
             Use video generator
           </Link>
-          <details className="group relative">
+          <details ref={createProjectDetailsRef} className="group relative">
             <summary className="list-none cursor-pointer rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90">
               New project
             </summary>
             <div className="absolute right-0 z-20 mt-3 w-90 rounded-sm border border-border bg-card p-4 shadow-2xl shadow-black/20">
-              <form action={createProjectAction} className="space-y-3">
+              <form
+                action={createProjectAction}
+                onSubmit={() => {
+                  createProjectDetailsRef.current?.removeAttribute("open");
+                }}
+                className="space-y-3"
+              >
                 <input type="hidden" name="stage" value="DRAFTING" />
+                {activeChannelId && (
+                  <input type="hidden" name="youtubeChannelId" value={activeChannelId} />
+                )}
                 <div>
                   <label htmlFor="proj-title" className="text-xs text-muted-foreground">
                     Title

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { House } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -21,21 +22,23 @@ export default async function ProjectsLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6 lg:px-10">
-        <Link href="/" className="text-sm font-semibold tracking-tight text-foreground transition hover:text-accent">
-          Keyframe
-        </Link>
-        <div className="flex items-center gap-4">
-          <Link href="/projects" className="text-sm text-muted-foreground transition hover:text-foreground">
-            Projects
+      <div className="pointer-events-none fixed right-4 top-4 z-40">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-sm border border-border bg-background/90 p-1 shadow-lg shadow-black/10 backdrop-blur">
+          <Link
+            href="/"
+            aria-label="Go to home"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-card text-muted-foreground transition hover:text-foreground"
+          >
+            <House size={16} />
           </Link>
-          <ThemeToggle />
-          <SignOutButton variant="inline" />
-        </div>
-      </header>
 
-      <main className="w-full px-6 pb-10 lg:px-10 lg:pb-12">
-        <div className="pt-8">{children}</div>
+          <ThemeToggle />
+          <SignOutButton variant="icon" />
+        </div>
+      </div>
+
+      <main className="w-full px-6 pb-10 pt-4 lg:px-10 lg:pb-12">
+        {children}
       </main>
     </div>
   );

@@ -1,8 +1,22 @@
 "use client";
 
 import { signOut } from "next-auth/react";
+import { LogOut } from "lucide-react";
 
-export function SignOutButton({ variant = "sidebar" }: { variant?: "sidebar" | "inline" }) {
+export function SignOutButton({ variant = "sidebar" }: { variant?: "sidebar" | "inline" | "icon" }) {
+  if (variant === "icon") {
+    return (
+      <button
+        type="button"
+        aria-label="Sign out"
+        onClick={() => signOut({ callbackUrl: "/" })}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-card text-muted-foreground transition hover:text-foreground"
+      >
+        <LogOut size={16} />
+      </button>
+    );
+  }
+
   if (variant === "inline") {
     return (
       <button

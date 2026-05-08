@@ -39,6 +39,7 @@ export async function createProjectAction(formData: FormData) {
   const nextStep = String(formData.get("nextStep") ?? "").trim();
   const stage = parseStage(formData.get("stage"));
   const targetPublishAtRaw = String(formData.get("targetPublishAt") ?? "").trim();
+  const youtubeChannelId = String(formData.get("youtubeChannelId") ?? "").trim() || null;
 
   if (!title) {
     return;
@@ -53,6 +54,7 @@ export async function createProjectAction(formData: FormData) {
       stage,
       nextStep: nextStep || null,
       targetPublishAt: targetPublishAtRaw ? new Date(targetPublishAtRaw) : null,
+      youtubeChannelId,
     },
   });
 

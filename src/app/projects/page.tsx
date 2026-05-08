@@ -5,10 +5,7 @@ import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { prisma } from "@/lib/prisma";
 import { createProjectAction } from "./actions";
 import { ProjectsPipelineBoard } from "@/components/projects/projects-pipeline-board";
-import { YoutubeProfileSyncButton } from "@/components/projects/youtube-profile-sync-button";
 import { CreatorAvatarImage, CreatorBannerImage } from "@/components/projects/creator-profile-media";
-import { YoutubeChannelSelector } from "@/components/projects/youtube-channel-selector";
-import { ConnectYoutubeChannelButton } from "@/components/projects/connect-youtube-channel-button";
 import { YoutubeLinkResolver } from "@/components/projects/youtube-link-resolver";
 
 function withCacheBust(url: string | null, linkedAt?: Date | null) {
@@ -64,6 +61,7 @@ export default async function ProjectsPage({
         select: {
           channelId: true,
           title: true,
+          avatarUrl: true,
           isActive: true,
         },
         orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
@@ -119,7 +117,6 @@ export default async function ProjectsPage({
     creator?.youtubeBannerUrl || null,
     creator?.youtubeLinkedAt,
   );
-  const hasYoutubeProfile = Boolean(creator?.youtubeAvatarUrl || creator?.youtubeBannerUrl);
   const creatorInitials = creatorName
     .split(" ")
     .filter(Boolean)
@@ -151,16 +148,10 @@ export default async function ProjectsPage({
               <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{creatorName}</h1>
             </div>
           </div>
-
-          <div className="flex flex-col items-end gap-2">
-            <YoutubeChannelSelector channels={creator?.youtubeChannels ?? []} />
-            <ConnectYoutubeChannelButton />
-            <YoutubeProfileSyncButton hasYoutubeProfile={hasYoutubeProfile} />
-          </div>
         </div>
       </div>
 
-      <div className="mx-auto mt-8 w-full max-w-6xl">
+      <div className="mx-auto mt-4 w-full max-w-6xl">
         <ProjectsPipelineBoard
           initialProjects={projectItems}
           channels={creator?.youtubeChannels ?? []}

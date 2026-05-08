@@ -13,9 +13,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as { title?: string; notes?: string };
+  const body = (await request.json()) as { title?: string; notes?: string; youtubeChannelId?: string };
   const title = (body.title ?? "").trim();
   const notes = (body.notes ?? "").trim();
+  const youtubeChannelId = (body.youtubeChannelId ?? "").trim() || null;
 
   if (!title) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
       title,
       notes: notes || null,
       stage: VideoProjectStage.IDEA,
+      youtubeChannelId,
     },
     select: {
       id: true,
@@ -35,6 +37,7 @@ export async function POST(request: Request) {
       notes: true,
       nextStep: true,
       stage: true,
+        youtubeChannelId: true,
     },
   });
 
