@@ -24,7 +24,7 @@ export default async function Home() {
     ? await prisma.videoProject.findMany({
         where: { userId },
         orderBy: { updatedAt: "desc" },
-        take: 12,
+        take: 3,
       })
     : [];
 
@@ -56,10 +56,13 @@ export default async function Home() {
       </header>
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-6 pb-16 lg:px-10 lg:pb-20">
-        <section className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center">
-          <h1 className="mb-6 text-center text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
-            What kind of video do you want to make?
+        <section className="flex w-full flex-1 flex-col justify-center">
+          <h1 className="mb-2 text-center text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
+            Start your next video idea.
           </h1>
+          <p className="mb-8 text-center text-sm text-muted-foreground">
+            Describe your concept—we'll help clarify it into something filmable.
+          </p>
 
           <form>
             <div className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-3.5 transition duration-150 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
@@ -67,27 +70,39 @@ export default async function Home() {
                 name="prompt"
                 type="text"
                 autoComplete="off"
-                placeholder="Describe your idea..."
+                placeholder="What's your video idea? (any amount of vagueness is fine)"
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
               />
-              {!userId && (
-                <Link
-                  href="/login"
-                  className="shrink-0 rounded-sm bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground transition duration-150 hover:opacity-90"
+              <span
+                aria-hidden="true"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border text-muted-foreground"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
                 >
-                  Sign in
-                </Link>
-              )}
+                  <path
+                    d="M5 12H19M19 12L13 6M19 12L13 18"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
             </div>
           </form>
 
           {userId && (
-            <div className="mt-4 flex items-center justify-center gap-5">
+            <div className="mt-4 flex items-center justify-center">
               <Link
                 href="/projects"
-                className="text-xs text-muted-foreground transition hover:text-foreground"
+                className="rounded-md px-6 py-2 text-sm font-semibold bg-accent transition duration-150 hover:opacity-90"
+                style={{ color: "var(--accent-foreground)" }}
               >
-                New project manually
+                View projects
               </Link>
             </div>
           )}
