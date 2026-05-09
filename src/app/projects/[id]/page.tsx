@@ -6,6 +6,12 @@ import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { prisma } from "@/lib/prisma";
 import { VIDEO_PROJECT_STAGE_LABELS, VIDEO_PROJECT_STAGES } from "@/lib/video-projects";
 import { updateProjectAction } from "../actions";
+import { Zap, ImageIcon } from "lucide-react";
+import { TitleIdeation } from "@/components/projects/title-ideation";
+import { ConsolidatorPhase } from "@/components/projects/consolidator-phase";
+import { HookGenerator } from "@/components/projects/hook-generator";
+import { ThumbnailGenerator } from "@/components/projects/thumbnail-generator";
+import type { ThumbnailDirectionOption } from "@/lib/ai";
 
 export default async function ProjectDetailPage({
   params,
@@ -42,6 +48,108 @@ export default async function ProjectDetailPage({
     ? project.targetPublishAt.toISOString().slice(0, 10)
     : "";
 
+  // Parse AI-generated suggestions
+  let proposedTitles: string[] | null = null;
+  if (project.proposedTitles) {
+    try {
+      proposedTitles = JSON.parse(project.proposedTitles);
+    } catch {
+      proposedTitles = null;
+    }
+  }
+
+  let shortlistedTitles: string[] = [];
+  if (project.shortlistedTitles) {
+    try {
+      const parsed = JSON.parse(project.shortlistedTitles);
+      if (Array.isArray(parsed)) {
+        shortlistedTitles = parsed.filter((item) => typeof item === "string");
+      }
+    } catch {
+      shortlistedTitles = [];
+    }
+  }
+
+  let shortlistedHooks: string[] = [];
+  if (project.shortlistedHooks) {
+    try {
+      const parsed = JSON.parse(project.shortlistedHooks);
+      if (Array.isArray(parsed)) {
+        shortlistedHooks = parsed.filter((item) => typeof item === "string");
+      }
+    } catch {
+      shortlistedHooks = [];
+    }
+  }
+
+  let shortlistedThumbnailDirections: ThumbnailDirectionOption[] = [];
+  if (project.shortlistedThumbnailDirection) {
+    try {
+      const parsed = JSON.parse(project.shortlistedThumbnailDirection);
+      if (Array.isArray(parsed)) {
+        shortlistedThumbnailDirections = parsed
+          .map((item) => {
+            if (typeof item === "string") {
+              try {
+                const maybeObject = JSON.parse(item) as unknown;
+                if (maybeObject && typeof maybeObject === "object" && !Array.isArray(maybeObject)) {
+                  return maybeObject as ThumbnailDirectionOption;
+                }
+              } catch {
+                return {
+                  mainVisualElement: item,
+                  colorPalette: "",
+                  composition: "",
+                  textOverlay: "",
+                  emotionalTone: "",
+                  referenceStyle: "",
+                };
+              }
+
+              return {
+                mainVisualElement: item,
+                colorPalette: "",
+                composition: "",
+                textOverlay: "",
+                emotionalTone: "",
+                referenceStyle: "",
+              };
+            }
+
+            if (item && typeof item === "object") {
+              const record = item as Record<string, unknown>;
+              const mainVisualElement =
+                typeof record.mainVisualElement === "string"
+                  ? record.mainVisualElement
+                  : typeof record["main visual element"] === "string"
+                    ? record["main visual element"] as string
+                    : typeof record.summary === "string"
+                      ? record.summary
+                      : "";
+
+              if (!mainVisualElement) {
+                return null;
+              }
+
+              return {
+                mainVisualElement,
+                colorPalette: typeof record.colorPalette === "string" ? record.colorPalette : typeof record["color palette"] === "string" ? (record["color palette"] as string) : "",
+                composition: typeof record.composition === "string" ? record.composition : typeof record["composition idea"] === "string" ? (record["composition idea"] as string) : "",
+                textOverlay: typeof record.textOverlay === "string" ? record.textOverlay : typeof record["text overlay"] === "string" ? (record["text overlay"] as string) : "",
+                emotionalTone: typeof record.emotionalTone === "string" ? record.emotionalTone : typeof record["emotional tone"] === "string" ? (record["emotional tone"] as string) : "",
+                referenceStyle: typeof record.referenceStyle === "string" ? record.referenceStyle : typeof record["reference style"] === "string" ? (record["reference style"] as string) : "",
+              };
+            }
+
+            return null;
+          })
+          .filter((item): item is ThumbnailDirectionOption => item !== null);
+      }
+    } catch {
+      shortlistedThumbnailDirections = [];
+    }
+  }
+
   return (
     <section className="mx-auto w-full max-w-6xl px-6 lg:px-10">
       <Link href="/projects" className="mb-6 inline-block text-xs text-muted-foreground transition hover:text-foreground">
@@ -58,96 +166,33 @@ export default async function ProjectDetailPage({
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           {/* Left Column: AI-Assisted Clarity Tools */}
-          <div className="space-y-6">
-            <div className="rounded-sm border border-border bg-card/30 p-4">
-              <div className="flex items-baseline justify-between gap-3 mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">Title Ideation</h3>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground transition hover:text-accent"
-                >
-                  Generate options →
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">AI will suggest 4-5 compelling titles based on your concept.</p>
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground px-3 py-2 rounded border border-dashed border-border">
-                  Click "Generate options" to see AI suggestions
-                </div>
-              </div>
-            </div>
+          <div className="space-y-8">
+            {/* Title Ideation */}
+            <TitleIdeation
+              projectId={project.id}
+              projectTitle={project.title}
+              concept={project.concept || ""}
+              selectedTitle={project.selectedTitle}
+              proposedTitles={proposedTitles}
+              shortlistedTitles={shortlistedTitles}
+            />
 
-            <div className="rounded-sm border border-border bg-card/30 p-4">
-              <div className="flex items-baseline justify-between gap-3 mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">Hook Generator</h3>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground transition hover:text-accent"
-                >
-                  Create opening →
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">First 3 seconds that stops the scroll.</p>
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground px-3 py-2 rounded border border-dashed border-border">
-                  Generate a hook once you've refined your concept
-                </div>
-              </div>
-            </div>
+            {/* Hook Generator */}
+            <HookGenerator
+              projectId={project.id}
+              concept={project.concept || ""}
+              projectTitle={project.title}
+              shortlistedHooks={shortlistedHooks}
+            />
 
-            <div className="rounded-sm border border-border bg-card/30 p-4">
-              <div className="flex items-baseline justify-between gap-3 mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">Angle Sharpener</h3>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground transition hover:text-accent"
-                >
-                  Clarify angle →
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">What makes this unique? Why now? For whom?</p>
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground px-3 py-2 rounded border border-dashed border-border">
-                  AI will ask clarifying questions
-                </div>
-              </div>
-            </div>
+            {/* Thumbnail Direction */}
+            <ThumbnailGenerator
+              projectId={project.id}
+              concept={project.concept || ""}
+              projectTitle={project.title}
+              shortlistedThumbnailDirections={shortlistedThumbnailDirections}
+            />
 
-            <div className="rounded-sm border border-border bg-card/30 p-4">
-              <div className="flex items-baseline justify-between gap-3 mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">Thumbnail Direction</h3>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground transition hover:text-accent"
-                >
-                  Visualize →
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">Visual hook ideas and composition suggestions.</p>
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground px-3 py-2 rounded border border-dashed border-border">
-                  Get visual direction based on your concept
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-sm border border-border bg-card/30 p-4">
-              <div className="flex items-baseline justify-between gap-3 mb-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">Viewer Promise</h3>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground transition hover:text-accent"
-                >
-                  Define promise →
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">What will viewers gain? (Clarity, entertainment, value, etc.)</p>
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground px-3 py-2 rounded border border-dashed border-border">
-                  AI will help crystallize the viewer value prop
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right Column: Creator Workspace */}
@@ -172,7 +217,7 @@ export default async function ProjectDetailPage({
               </label>
               <textarea
                 id="structure"
-                name="structure"
+                name="nextStep"
                 defaultValue={project.nextStep ?? ""}
                 placeholder="Rough flow: intro → problem → solution → cta
 Or: opening hook → story → payoff
@@ -197,6 +242,17 @@ Keep it loose—this evolves as you clarify."
             </div>
           </div>
         </div>
+
+        {/* Project Consolidator Phase */}
+        <ConsolidatorPhase
+           projectId={project.id}
+           shortlistedTitles={shortlistedTitles}
+           shortlistedHooks={shortlistedHooks}
+           shortlistedThumbnailDirections={shortlistedThumbnailDirections}
+           currentTitle={project.selectedTitle}
+           currentHook={project.selectedHook}
+           currentThumbnailDirection={project.selectedThumbnailDirection}
+        />
 
         {/* Metadata Section (Collapsible) */}
         <details className="mt-8 border-t border-border pt-6">

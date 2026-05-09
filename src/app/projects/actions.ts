@@ -92,13 +92,34 @@ export async function updateProjectAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const concept = String(formData.get("concept") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
-  const nextStep = String(formData.get("nextStep") ?? "").trim();
+  const nextStep = String(formData.get("nextStep") ?? formData.get("structure") ?? "").trim();
   const stage = parseStage(formData.get("stage"));
   const targetPublishAtRaw = String(formData.get("targetPublishAt") ?? "").trim();
   const youtubeChannelId = String(formData.get("youtubeChannelId") ?? "").trim() || null;
 
-  if (!id || !title) {
+  if (!id) {
     return;
+  }
+
+  const data: {
+    title?: string;
+    concept: string | null;
+    notes: string | null;
+    nextStep: string | null;
+    stage: VideoProjectStage;
+    targetPublishAt: Date | null;
+    youtubeChannelId: string | null;
+  } = {
+    concept: concept || null,
+    notes: notes || null,
+    nextStep: nextStep || null,
+    stage,
+    targetPublishAt: targetPublishAtRaw ? new Date(targetPublishAtRaw) : null,
+    youtubeChannelId,
+  };
+
+  if (title) {
+    data.title = title;
   }
 
   await prisma.videoProject.updateMany({
@@ -106,15 +127,7 @@ export async function updateProjectAction(formData: FormData) {
       id,
       userId,
     },
-    data: {
-      title,
-      concept: concept || null,
-      notes: notes || null,
-      nextStep: nextStep || null,
-      stage,
-      targetPublishAt: targetPublishAtRaw ? new Date(targetPublishAtRaw) : null,
-      youtubeChannelId,
-    },
+    data,
   });
 
   revalidatePath("/projects");

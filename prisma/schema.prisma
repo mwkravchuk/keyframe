@@ -63,6 +63,26 @@ model VideoProject {
   nextStep         String?
   targetPublishAt  DateTime?
   youtubeChannelId String?
+  
+  // Title Ideation
+  proposedTitles   String?           // JSON array of suggested titles
+  shortlistedTitles String?          // JSON array of user-saved title candidates
+  selectedTitle    String?           // User's chosen title
+  
+  // Hook Generation
+  proposedHooks    String?           // JSON array of suggested hooks
+  shortlistedHooks String?           // JSON array of user-saved hook candidates
+  selectedHook     String?           // User's chosen hook
+  
+  // Angle Sharpening
+  proposedAngle    String?           // AI's angle clarification
+  selectedAngle    String?           // User's chosen/refined angle
+  
+  // Thumbnail Direction
+  proposedThumbnailDirection  String?  // AI's thumbnail suggestions
+  shortlistedThumbnailDirection String? // JSON array of user-saved thumbnail candidates
+  selectedThumbnailDirection  String?  // User's chosen direction
+  
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
