@@ -28,14 +28,15 @@ export async function PATCH(
 
     // Validate field names
     const validFields = [
-      "selectedTitle",
       "shortlistedTitles",
       "title",
       "shortlistedHooks",
-      "selectedHook",
-      "shortlistedThumbnailDirection",
       "selectedAngle",
-      "selectedThumbnailDirection",
+      "notes",
+      "concept",
+      "nextStep",
+      "targetPublishAt",
+      "youtubeChannelId",
     ];
 
     if (!validFields.includes(field)) {
@@ -55,12 +56,11 @@ export async function PATCH(
     }
 
     // Update the field
-    const updateData: Record<string, string | null> = {};
+    const updateData: Record<string, string | null | Date> = {};
 
     if (
       field === "shortlistedTitles" ||
-      field === "shortlistedHooks" ||
-      field === "shortlistedThumbnailDirection"
+      field === "shortlistedHooks"
     ) {
       if (!Array.isArray(value)) {
         return Response.json(
@@ -86,6 +86,21 @@ export async function PATCH(
         });
 
       updateData[field] = JSON.stringify(normalized);
+    } else if (field === "targetPublishAt") {
+      if (value == null || value === "") {
+        updateData[field] = null;
+      } else {
+        const parsed = new Date(String(value));
+        if (Number.isNaN(parsed.getTime())) {
+          return Response.json(
+            { error: "targetPublishAt must be a valid date" },
+            { status: 400 }
+          );
+        }
+        updateData[field] = parsed;
+      }
+    } else if (field === "youtubeChannelId") {
+      updateData[field] = value == null || value === "" ? null : String(value);
     } else {
       updateData[field] = value == null ? null : String(value);
     }

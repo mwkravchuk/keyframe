@@ -45,10 +45,10 @@ interface GenerateHookOptions {
   angle?: string;
 }
 
-interface GenerateThumbnailOptions {
+interface GenerateSituationPromptsOptions {
   concept: string;
   title?: string;
-  angle?: string;
+  savedHooks?: string[];
 }
 
 function cleanListItem(raw: string) {
@@ -56,6 +56,7 @@ function cleanListItem(raw: string) {
     .replace(/^\s*[-*•]\s*/, "")
     .replace(/^\s*\d+[).\-:]\s*/, "")
     .replace(/^\s*`+|`+\s*$/g, "")
+    .replace(/^\s*json\s*:?\s*/i, "")
     .replace(/^\s*["'“”]+|["'“”]+\s*$/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -63,9 +64,14 @@ function cleanListItem(raw: string) {
 
 function extractListItems(responseText: string) {
   const trimmed = responseText.trim();
+  const normalized = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .replace(/^\s*json\s*\n/i, "")
+    .trim();
 
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
+  const parseAsJsonList = (text: string) => {
+    const parsed = JSON.parse(text) as unknown;
 
     if (Array.isArray(parsed)) {
       return parsed.map((item) => cleanListItem(String(item))).filter(Boolean);
@@ -78,116 +84,39 @@ function extractListItems(responseText: string) {
         return firstArray.map((item) => cleanListItem(String(item))).filter(Boolean);
       }
     }
+
+    return null;
+  };
+
+  try {
+    const direct = parseAsJsonList(normalized);
+    if (direct) {
+      return direct;
+    }
   } catch {
     // Fall through to plain-text parsing.
   }
 
-  return trimmed
+  // Try to recover when the model includes extra prose around JSON.
+  const arrayStart = normalized.indexOf("[");
+  const arrayEnd = normalized.lastIndexOf("]");
+  if (arrayStart !== -1 && arrayEnd > arrayStart) {
+    const arrayCandidate = normalized.slice(arrayStart, arrayEnd + 1);
+    try {
+      const recovered = parseAsJsonList(arrayCandidate);
+      if (recovered) {
+        return recovered;
+      }
+    } catch {
+      // Fall through to plain-text parsing.
+    }
+  }
+
+  return normalized
     .split(/\n+/)
     .map(cleanListItem)
+    .filter((line) => line !== "[" && line !== "]" && line !== "{" && line !== "}" && line !== "json")
     .filter(Boolean);
-}
-
-function extractJsonPayload(responseText: string) {
-  const trimmed = responseText.trim();
-
-  try {
-    return JSON.parse(trimmed) as unknown;
-  } catch {
-    const firstBracket = trimmed.indexOf("[");
-    const firstBrace = trimmed.indexOf("{");
-    const candidates = [firstBracket, firstBrace].filter((value) => value >= 0);
-
-    if (candidates.length === 0) {
-      return null;
-    }
-
-    const start = Math.min(...candidates);
-
-    try {
-      return JSON.parse(trimmed.slice(start)) as unknown;
-    } catch {
-      return null;
-    }
-  }
-}
-
-export interface ThumbnailDirectionOption {
-  mainVisualElement: string;
-  colorPalette: string;
-  composition: string;
-  textOverlay: string;
-  emotionalTone: string;
-  referenceStyle: string;
-}
-
-function normalizeThumbnailOption(item: unknown): ThumbnailDirectionOption | null {
-  if (typeof item === "string") {
-    const cleaned = cleanListItem(item);
-    if (!cleaned) return null;
-
-    return {
-      mainVisualElement: cleaned,
-      colorPalette: "",
-      composition: "",
-      textOverlay: "",
-      emotionalTone: "",
-      referenceStyle: "",
-    };
-  }
-
-  if (!item || typeof item !== "object") {
-    return null;
-  }
-
-  const record = item as Record<string, unknown>;
-  const read = (...keys: string[]) => {
-    for (const key of keys) {
-      const value = record[key];
-      if (typeof value === "string" && value.trim()) {
-        return cleanListItem(value);
-      }
-    }
-
-    return "";
-  };
-
-  const mainVisualElement = read("mainVisualElement", "main visual element", "visual", "summary", "subject");
-  if (!mainVisualElement) {
-    return null;
-  }
-
-  return {
-    mainVisualElement,
-    colorPalette: read("colorPalette", "color palette", "palette"),
-    composition: read("composition", "composition idea", "layout"),
-    textOverlay: read("textOverlay", "text overlay", "text"),
-    emotionalTone: read("emotionalTone", "emotional tone", "tone"),
-    referenceStyle: read("referenceStyle", "reference style", "style"),
-  };
-}
-
-export function parseThumbnailDirections(responseText: string): ThumbnailDirectionOption[] {
-  const parsed = extractJsonPayload(responseText);
-
-  if (Array.isArray(parsed)) {
-    return parsed
-      .map(normalizeThumbnailOption)
-      .filter((item): item is ThumbnailDirectionOption => item !== null)
-      .slice(0, 5);
-  }
-
-  if (parsed && typeof parsed === "object") {
-    const list = Object.values(parsed as Record<string, unknown>).find(Array.isArray);
-    if (Array.isArray(list)) {
-      return list
-        .map(normalizeThumbnailOption)
-        .filter((item): item is ThumbnailDirectionOption => item !== null)
-        .slice(0, 5);
-    }
-  }
-
-  return [];
 }
 
 function normalizeTitle(raw: string) {
@@ -287,31 +216,40 @@ export async function generateHook(
 ): Promise<string[]> {
   const { concept, title, angle } = options;
 
-  const systemPrompt = `You are a YouTube hook expert.
+  const systemPrompt = `You are a YouTube hook writer who understands authentic creator voice.
 
-Return a JSON array of exactly 5 short hook options.
+Your job is NOT to template-fill or use clichéd phrases. Your job is to understand the VIBE and emotional intent of the video, then craft hooks that feel like natural openings.
 
 Rules:
-- Each item should be 1-2 sentences max
-- Each item should feel like a strong opening line for the first 3 seconds
-- No markdown
-- No labels
-- No commentary
+- Each hook is 1-2 sentences max
+- Feels like a real person talking, not a YouTube formula
+- AVOID at all costs:
+  * "Watch this [adjective] ensue" / "watch what happens"
+  * "You won't believe..." / "wait until..." / "hold on..."
+  * "[Word] gone wrong" / "[Word] gone right"
+  * Allcaps words, exclamation chains, multiple question marks
+  * Generic hype language (insane, crazy, unhinged, wild, etc.)
+  * Phrases that signal the tone rather than embodying it
+  * Keyword spam or over-emphasis of adjectives the creator mentioned
+- Instead: feel like the actual first words a creator would speak
+- The hook should feel connected to the title and angle naturally, not forced
 - Return only valid JSON
 
-Example format:
-["Hook option one", "Hook option two"]`;
+Example of BAD: ["Watch this hilarity ensue!", "You won't believe what happens next!"]
+Example of GOOD: ["I spent 3 months trying to fix this the wrong way", "Most people don't realize this about JavaScript"]
+
+Format: ["Hook option one", "Hook option two"]`;
 
   const userPrompt = `Video Concept: ${concept}
 ${title ? `Title: ${title}` : ""}
 ${angle ? `Angle: ${angle}` : ""}
 
-Generate hook options:`;
+Generate hook options that feel authentic to this creator's voice and angle:`;
 
   const responseText = await runPrompt({
     systemPrompt,
     userPrompt,
-    maxTokens: 250,
+    maxTokens: 300,
   });
 
   const hooks = extractListItems(responseText).slice(0, 5);
@@ -323,51 +261,43 @@ Generate hook options:`;
   return hooks;
 }
 
-export async function generateThumbnailDirection(
-  options: GenerateThumbnailOptions
-): Promise<ThumbnailDirectionOption[]> {
-  const { concept, title, angle } = options;
+export async function generateSituationPrompts(
+  options: GenerateSituationPromptsOptions
+): Promise<string[]> {
+  const { concept, title, savedHooks } = options;
 
-  const systemPrompt = `You are a YouTube thumbnail designer.
-
-Return a JSON array of exactly 5 objects.
-
-Each object must include these string fields:
-- mainVisualElement
-- colorPalette
-- composition
-- textOverlay
-- emotionalTone
-- referenceStyle
+  const systemPrompt = `You are a practical video planning assistant.
+Generate short "situation prompts" that remind a creator when to pull out the camera.
 
 Rules:
-- Return only valid JSON
-- No markdown
-- No bullets
-- No commentary
-- Keep each field short and concrete
-- Make each option meaningfully different
+- Return valid JSON array only
+- 6 to 10 items
+- Each item is one simple line, 4 to 14 words
+- Focus on moments/situations, not camera jargon
+- No technical shot language like focal length, framing, aperture
+- Keep each item action-triggered and specific enough to recognize in real life
+- Use plain language`;
 
-Example:
-[{"mainVisualElement":"...","colorPalette":"...","composition":"...","textOverlay":"...","emotionalTone":"...","referenceStyle":"..."}]`;
+  const userPrompt = `Video concept: ${concept}
+${title ? `Current title: ${title}` : ""}
+${savedHooks && savedHooks.length > 0 ? `Saved hooks for context: ${savedHooks.join(" | ")}` : ""}
 
-  const userPrompt = `Video Concept: ${concept}
-${title ? `Title: ${title}` : ""}
-${angle ? `Angle: ${angle}` : ""}
-
-Generate thumbnail options as structured JSON:`;
+Generate situation prompts for this creator.`;
 
   const responseText = await runPrompt({
     systemPrompt,
     userPrompt,
-    maxTokens: 300,
+    maxTokens: 350,
   });
 
-  const thumbnails = parseThumbnailDirections(responseText);
+  const prompts = extractListItems(responseText)
+    .map((item) => item.replace(/\.$/, "").trim())
+    .filter(Boolean)
+    .slice(0, 10);
 
-  if (thumbnails.length === 0) {
-    throw new Error("No thumbnail directions returned from OpenAI");
+  if (prompts.length === 0) {
+    throw new Error("No situation prompts returned from OpenAI");
   }
 
-  return thumbnails;
+  return prompts;
 }

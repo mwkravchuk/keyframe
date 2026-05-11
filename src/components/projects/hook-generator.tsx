@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Zap, Loader2 } from "lucide-react";
 
 interface HookGeneratorProps {
@@ -16,12 +17,14 @@ export function HookGenerator({
   projectTitle,
   shortlistedHooks: initialShortlistedHooks,
 }: HookGeneratorProps) {
+  const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hooks, setHooks] = useState<string[]>([]);
   const [shortlistedHooks, setShortlistedHooks] = useState<string[]>(
     initialShortlistedHooks || []
   );
+  const [manualHook, setManualHook] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const getLiveConcept = () => {
@@ -92,8 +95,45 @@ export function HookGenerator({
 
       setShortlistedHooks(nextShortlist);
       setError(null);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update shortlist");
+    }
+  };
+
+  const handleManualSave = async () => {
+    const value = manualHook.trim();
+    if (!value) {
+      return;
+    }
+
+    if (shortlistedHooks.includes(value)) {
+      setManualHook("");
+      return;
+    }
+
+    const nextShortlist = [...shortlistedHooks, value];
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/selections`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          field: "shortlistedHooks",
+          value: nextShortlist,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save hook");
+      }
+
+      setShortlistedHooks(nextShortlist);
+      setManualHook("");
+      setError(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save hook");
     }
   };
 
@@ -132,6 +172,54 @@ export function HookGenerator({
       <p className="text-xs text-muted-foreground ml-6 mb-3">
         First 3 seconds that stops the scroll
       </p>
+
+      <div className="ml-6 mb-4 rounded border border-border/50 bg-card/20 p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
+          Saved Hooks ({shortlistedHooks.length})
+        </p>
+
+        {shortlistedHooks.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No saved hooks yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {shortlistedHooks.map((hook, idx) => (
+              <div
+                key={`${hook}-${idx}`}
+                className="flex items-start justify-between gap-2 rounded border border-border/30 bg-background px-2 py-1.5 text-xs"
+              >
+                <span className="flex-1">{hook}</span>
+                <button
+                  onClick={() => handleShortlistToggle(hook)}
+                  className="whitespace-nowrap rounded bg-border/20 px-2 py-0.5 text-xs text-muted-foreground transition hover:bg-border/40"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-3 flex gap-2">
+          <input
+            value={manualHook}
+            onChange={(event) => setManualHook(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleManualSave();
+              }
+            }}
+            placeholder="Write your own hook to save"
+            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs"
+          />
+          <button
+            onClick={handleManualSave}
+            className="rounded bg-border/20 px-2 py-1.5 text-xs text-muted-foreground transition hover:bg-border/40"
+          >
+            Save
+          </button>
+        </div>
+      </div>
 
       {isExpanded && (
         <div className="ml-6 space-y-2 rounded border border-border/50 bg-card/20 p-3">

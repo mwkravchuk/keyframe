@@ -2,22 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lightbulb, Zap, ImageIcon } from "lucide-react";
-import type { ThumbnailDirectionOption } from "@/lib/ai";
+import { Lightbulb } from "lucide-react";
 
 interface ConsolidatorPhaseProps {
   projectId: string;
   shortlistedTitles: string[];
-  shortlistedHooks: string[];
-  shortlistedThumbnailDirections: ThumbnailDirectionOption[];
   currentTitle: string | null;
-  currentHook: string | null;
-  currentThumbnailDirection: string | null;
 }
 interface GeneratorCategory {
   label: string;
   icon: React.ReactNode;
-  items: string[] | ThumbnailDirectionOption[];
+  items: string[];
   fieldName: string;
   currentValue: string | null;
 }
@@ -25,11 +20,7 @@ interface GeneratorCategory {
 export function ConsolidatorPhase({
   projectId,
   shortlistedTitles,
-  shortlistedHooks,
-  shortlistedThumbnailDirections,
   currentTitle,
-  currentHook,
-  currentThumbnailDirection,
 }: ConsolidatorPhaseProps) {
   const router = useRouter();
   const [isApplying, setIsApplying] = useState<string | null>(null);
@@ -39,22 +30,8 @@ export function ConsolidatorPhase({
       label: "Title",
       icon: <Lightbulb className="h-4 w-4" />,
       items: shortlistedTitles,
-      fieldName: "selectedTitle",
+      fieldName: "title",
       currentValue: currentTitle,
-    },
-    {
-      label: "Hook",
-      icon: <Zap className="h-4 w-4" />,
-      items: shortlistedHooks,
-      fieldName: "selectedHook",
-      currentValue: currentHook,
-    },
-    {
-      label: "Thumbnail Direction",
-      icon: <ImageIcon className="h-4 w-4" />,
-      items: shortlistedThumbnailDirections,
-      fieldName: "selectedThumbnailDirection",
-      currentValue: currentThumbnailDirection,
     },
   ];
 
@@ -101,10 +78,10 @@ export function ConsolidatorPhase({
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {activeCategories.map((category) => (
-          <div key={category.fieldName}>
-            <div className="flex items-baseline gap-2 mb-3">
+          <div key={category.fieldName} className="flex flex-col">
+            <div className="flex items-baseline gap-2 mb-4">
               <span className="text-muted-foreground">{category.icon}</span>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">
                 {category.label}
@@ -113,48 +90,8 @@ export function ConsolidatorPhase({
                 ({category.items.length} saved)
               </span>
             </div>
-            <div className="ml-6 space-y-2">
-              {category.items.map((item) => {
-                if (category.fieldName === "selectedThumbnailDirection") {
-                  const thumbnail = item as ThumbnailDirectionOption;
-                  const serialized = JSON.stringify(thumbnail);
-                  const isCurrent = category.currentValue === serialized;
-
-                  return (
-                    <div
-                      key={serialized}
-                      className="rounded-sm border border-border/50 bg-card/30 p-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1 space-y-2">
-                          <p className="text-sm font-medium text-foreground break-words">
-                            {thumbnail.mainVisualElement}
-                          </p>
-                          <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground">
-                            <p><span className="font-semibold text-foreground">Color palette:</span> {thumbnail.colorPalette || "-"}</p>
-                            <p><span className="font-semibold text-foreground">Composition:</span> {thumbnail.composition || "-"}</p>
-                            <p><span className="font-semibold text-foreground">Text overlay:</span> {thumbnail.textOverlay || "-"}</p>
-                            <p><span className="font-semibold text-foreground">Tone:</span> {thumbnail.emotionalTone || "-"}</p>
-                            <p><span className="font-semibold text-foreground">Style:</span> {thumbnail.referenceStyle || "-"}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleApplySelection(category.fieldName, serialized)}
-                          disabled={isApplying === category.fieldName || isCurrent}
-                          className={`flex-shrink-0 whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium transition ${
-                            isCurrent
-                              ? "bg-accent/20 text-accent"
-                              : "bg-border/20 text-muted-foreground hover:bg-border/40 disabled:opacity-50"
-                          }`}
-                        >
-                          {isCurrent ? "Applied" : isApplying === category.fieldName ? "Applying..." : "Apply"}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
-
-                const value = item as string;
+            <div className="space-y-2 flex-1">
+              {category.items.map((value) => {
                 const isCurrent = value === category.currentValue;
 
                 return (
@@ -162,13 +99,13 @@ export function ConsolidatorPhase({
                     key={value}
                     className="flex items-start justify-between gap-3 rounded-sm border border-border/50 bg-card/30 p-3"
                   >
-                    <p className="text-sm text-foreground leading-relaxed flex-1 break-words">
+                    <p className="text-sm text-foreground leading-relaxed flex-1 wrap-break-word">
                       {value}
                     </p>
                     <button
                       onClick={() => handleApplySelection(category.fieldName, value)}
                       disabled={isApplying === category.fieldName || isCurrent}
-                      className={`flex-shrink-0 whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium transition ${
+                      className={`shrink-0 whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium transition ${
                         isCurrent
                           ? "bg-accent/20 text-accent"
                           : "bg-border/20 text-muted-foreground hover:bg-border/40 disabled:opacity-50"

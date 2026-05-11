@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { prisma } from "@/lib/prisma";
+import { syncYoutubeProfileForUser } from "@/lib/youtube";
 
 const LINK_TARGET_COOKIE = "kf_youtube_link_target_user_id";
 
@@ -50,7 +51,25 @@ export async function POST(request: Request) {
   });
 
   if (targetUserId === sourceUserId) {
-    return response;
+    const syncResult = await syncYoutubeProfileForUser(sourceUserId);
+    if (syncResult.status !== "ok") {
+      const failed = NextResponse.json({ merged: false, reason: "sync-failed", syncResult });
+      failed.cookies.set({
+        name: LINK_TARGET_COOKIE,
+        value: "",
+        path: "/",
+        maxAge: 0,
+      });
+      return failed;
+    }
+    const sameUser = NextResponse.json({ merged: false, reason: "noop", synced: true });
+    sameUser.cookies.set({
+      name: LINK_TARGET_COOKIE,
+      value: "",
+      path: "/",
+      maxAge: 0,
+    });
+    return sameUser;
   }
 
   const [sourceUser, targetUser] = await Promise.all([
@@ -156,7 +175,20 @@ export async function POST(request: Request) {
     }
   });
 
-  const mergedResponse = NextResponse.json({ merged: true, targetUserId });
+  const syncResult = await syncYoutubeProfileForUser(targetUserId);
+
+  if (syncResult.status !== "ok") {
+    const failed = NextResponse.json({ merged: true, targetUserId, syncFailed: true, syncResult });
+    failed.cookies.set({
+      name: LINK_TARGET_COOKIE,
+      value: "",
+      path: "/",
+      maxAge: 0,
+    });
+    return failed;
+  }
+
+  const mergedResponse = NextResponse.json({ merged: true, targetUserId, synced: true });
   mergedResponse.cookies.set({
     name: LINK_TARGET_COOKIE,
     value: "",

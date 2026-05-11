@@ -2,22 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lightbulb, Loader2, Check } from "lucide-react";
+import { Lightbulb, Loader2 } from "lucide-react";
 
 interface TitleIdeationProps {
   projectId: string;
-  projectTitle: string;
   concept: string;
-  selectedTitle: string | null;
   proposedTitles: string[] | null;
   shortlistedTitles: string[];
 }
 
 export function TitleIdeation({
   projectId,
-  projectTitle,
   concept,
-  selectedTitle,
   proposedTitles: initialProposedTitles,
   shortlistedTitles: initialShortlistedTitles,
 }: TitleIdeationProps) {
@@ -30,9 +26,6 @@ export function TitleIdeation({
   const [shortlistedTitles, setShortlistedTitles] = useState<string[]>(
     initialShortlistedTitles || []
   );
-  const [saved, setSaved] = useState(selectedTitle || null);
-  const [currentProjectTitle, setCurrentProjectTitle] = useState(projectTitle);
-  const [isApplyingTitle, setIsApplyingTitle] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const getLiveConcept = () => {
@@ -78,32 +71,6 @@ export function TitleIdeation({
     }
   };
 
-  const handleSaveTitle = async (title: string) => {
-    try {
-      const response = await fetch(
-        `/api/projects/${projectId}/selections`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            field: "selectedTitle",
-            value: title,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to save selection");
-      }
-
-      setSaved(title);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to save selection"
-      );
-    }
-  };
-
   const handleShortlistToggle = async (title: string) => {
     const isAlreadyShortlisted = shortlistedTitles.includes(title);
     const nextShortlist = isAlreadyShortlisted
@@ -126,46 +93,9 @@ export function TitleIdeation({
 
       setShortlistedTitles(nextShortlist);
       setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update shortlist");
-    }
-  };
-
-  const handleUseAsProjectTitle = async (title: string) => {
-    setIsApplyingTitle(true);
-    setError(null);
-
-    try {
-      const [titleResponse, selectedResponse] = await Promise.all([
-        fetch(`/api/projects/${projectId}/selections`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            field: "title",
-            value: title,
-          }),
-        }),
-        fetch(`/api/projects/${projectId}/selections`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            field: "selectedTitle",
-            value: title,
-          }),
-        }),
-      ]);
-
-      if (!titleResponse.ok || !selectedResponse.ok) {
-        throw new Error("Failed to apply project title");
-      }
-
-      setSaved(title);
-      setCurrentProjectTitle(title);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to apply project title");
-    } finally {
-      setIsApplyingTitle(false);
+      setError(err instanceof Error ? err.message : "Failed to update shortlist");
     }
   };
 
@@ -225,36 +155,16 @@ export function TitleIdeation({
                   className="flex items-start justify-between gap-2 rounded border border-border/30 bg-background px-2 py-1.5 text-xs"
                 >
                   <span className="flex-1">{title}</span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleShortlistToggle(title)}
-                      className={`whitespace-nowrap px-2 py-0.5 rounded transition text-xs ${
-                        shortlistedTitles.includes(title)
-                          ? "bg-accent/20 text-accent"
-                          : "bg-border/20 text-muted-foreground hover:bg-border/40"
-                      }`}
-                    >
-                      {shortlistedTitles.includes(title) ? "Saved" : "Save"}
-                    </button>
-                    <button
-                      onClick={() => handleSaveTitle(title)}
-                      disabled={saved === title}
-                      className={`flex items-center gap-1 whitespace-nowrap px-2 py-0.5 rounded transition text-xs ${
-                        saved === title
-                          ? "bg-accent/20 text-accent"
-                          : "bg-border/20 text-muted-foreground hover:bg-border/40"
-                      }`}
-                    >
-                      {saved === title ? (
-                        <>
-                          <Check className="h-3 w-3" />
-                          Selected
-                        </>
-                      ) : (
-                        "Select"
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleShortlistToggle(title)}
+                    className={`whitespace-nowrap px-2 py-0.5 rounded transition text-xs ${
+                      shortlistedTitles.includes(title)
+                        ? "bg-accent/20 text-accent"
+                        : "bg-border/20 text-muted-foreground hover:bg-border/40"
+                    }`}
+                  >
+                    {shortlistedTitles.includes(title) ? "Saved" : "Save"}
+                  </button>
                 </div>
               ))}
               <button

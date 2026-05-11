@@ -20,9 +20,19 @@ export function YoutubeLinkResolver({ shouldResolve }: Props) {
 
     async function resolveLink() {
       try {
-        await fetch("/api/youtube/link/resolve", {
+        const response = await fetch("/api/youtube/link/resolve", {
           method: "POST",
         });
+
+        if (!response.ok) {
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          console.error("YouTube link resolve failed", body ?? { status: response.status });
+        } else {
+          const body = (await response.json().catch(() => null)) as { syncFailed?: boolean; syncResult?: unknown } | null;
+          if (body?.syncFailed) {
+            console.error("YouTube profile sync failed after link", body.syncResult);
+          }
+        }
       } finally {
         router.replace("/projects");
         router.refresh();
