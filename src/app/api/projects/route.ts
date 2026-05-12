@@ -13,10 +13,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as { title?: string; notes?: string; youtubeChannelId?: string };
+  const body = (await request.json()) as {
+    title?: string;
+    concept?: string;
+    notes?: string;
+    youtubeChannelId?: string;
+    rawIdea?: string;
+    briefFormat?: string;
+    briefData?: string;
+  };
   const title = (body.title ?? "").trim();
+  const concept = (body.concept ?? "").trim();
   const notes = (body.notes ?? "").trim();
   const youtubeChannelId = (body.youtubeChannelId ?? "").trim() || null;
+  const rawIdea = (body.rawIdea ?? "").trim() || null;
+  const briefFormat = (body.briefFormat ?? "").trim() || null;
+  const briefData = (body.briefData ?? "").trim() || null;
 
   if (!title) {
     return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -26,6 +38,10 @@ export async function POST(request: Request) {
     data: {
       userId,
       title,
+      concept: concept || null,
+      rawIdea,
+      briefFormat,
+      briefData,
       notes: notes || null,
       stage: VideoProjectStage.IDEA,
       youtubeChannelId,

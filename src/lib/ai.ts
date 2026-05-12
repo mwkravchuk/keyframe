@@ -1,4 +1,5 @@
 import { OpenAI } from "openai";
+import { type VideoBrief, normalizeVideoBrief } from "@/lib/video-brief";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -126,6 +127,67 @@ function normalizeTitle(raw: string) {
     .replace(/["'`]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function extractJsonObject(responseText: string) {
+  const trimmed = responseText.trim();
+  const normalized = trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .replace(/^\s*json\s*\n/i, "")
+    .trim();
+
+  try {
+    const parsed = JSON.parse(normalized) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // Fall through.
+  }
+
+  const start = normalized.indexOf("{");
+  const end = normalized.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    const candidate = normalized.slice(start, end + 1);
+    const parsed = JSON.parse(candidate) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+  }
+
+  throw new Error("Failed to parse JSON object response");
+}
+
+export async function parseVideoBriefFromIdea(rawIdea: string): Promise<VideoBrief> {
+  const systemPrompt = `You are a creative development assistant.
+Extract a concise structured brief from the user's raw video idea.
+
+Allowed format values only: journey, challenge, educational, vlog
+
+Return valid JSON only in this shape:
+{
+  "format": "journey|challenge|educational|vlog|null",
+  "topic": "string or null",
+  "audience": "string or null",
+  "outcome": "string or null",
+  "stakes": "string or null",
+  "constraints": "string or null",
+  "tone": "string or null"
+}
+
+Keep values short and practical. Do not invent specifics that are not implied.`;
+
+  const userPrompt = `Raw idea:\n${rawIdea}`;
+
+  const responseText = await runPrompt({
+    systemPrompt,
+    userPrompt,
+    maxTokens: 350,
+  });
+
+  const parsed = extractJsonObject(responseText);
+  return normalizeVideoBrief(parsed, rawIdea);
 }
 
 /**

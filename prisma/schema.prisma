@@ -57,7 +57,10 @@ model VideoProject {
   id               String            @id @default(cuid())
   userId           String
   title            String
+  rawIdea          String?
   concept          String?
+  briefFormat      String?
+  briefData        String?
   notes            String?
   stage            VideoProjectStage @default(IDEA)
   nextStep         String?

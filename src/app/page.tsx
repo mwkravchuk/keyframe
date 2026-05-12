@@ -6,6 +6,7 @@ import { VIDEO_PROJECT_STAGE_LABELS } from "@/lib/video-projects";
 import type { VideoProjectStage } from "@/lib/video-projects";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { VideoIdeaBriefComposer } from "@/components/home/video-idea-brief-composer";
 
 const STAGE_COLORS: Record<VideoProjectStage, string> = {
   IDEA: "text-sky-300 bg-sky-400/10 border-sky-400/25",
@@ -61,39 +62,10 @@ export default async function Home() {
             Start your next video idea.
           </h1>
           <p className="mb-8 text-center text-sm text-muted-foreground">
-            Describe your concept—we'll help clarify it into something filmable.
+            Describe your concept-we&apos;ll help clarify it into something filmable.
           </p>
 
-          <form>
-            <div className="flex items-center gap-3 rounded-md border border-border bg-card px-4 py-3.5 transition duration-150 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-              <input
-                name="prompt"
-                type="text"
-                autoComplete="off"
-                placeholder="What's your video idea? (any amount of vagueness is fine)"
-                className="min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
-              />
-              <span
-                aria-hidden="true"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border text-muted-foreground"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                >
-                  <path
-                    d="M5 12H19M19 12L13 6M19 12L13 18"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-            </div>
-          </form>
+          <VideoIdeaBriefComposer isSignedIn={Boolean(userId)} />
 
           {userId && (
             <div className="mt-4 flex items-center justify-center">
