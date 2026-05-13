@@ -12,8 +12,8 @@ export function ThemeToggle() {
       return;
     }
 
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    document.documentElement.classList.toggle("dark", prefersDark);
+    // Keep first-visit rendering consistent across browsers by defaulting to light.
+    document.documentElement.classList.remove("dark");
   }, []);
 
   const toggleTheme = () => {
