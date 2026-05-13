@@ -41,10 +41,6 @@ export default async function Home() {
           <div className="relative flex h-full flex-col px-6 pb-8 pt-8 xl:px-8">
             <div className="mb-6 flex items-center justify-between">
               <span className="text-sm font-semibold tracking-tight text-foreground">Keyframe</span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-2.5 py-1 text-[10px] font-medium text-muted-foreground">
-                <CircleCheck size={12} />
-                Live
-              </span>
             </div>
 
             <div className="pb-3">
