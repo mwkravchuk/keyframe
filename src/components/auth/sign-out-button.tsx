@@ -2,18 +2,20 @@
 
 import { signOut } from "next-auth/react";
 import { LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function SignOutButton({ variant = "sidebar" }: { variant?: "sidebar" | "inline" | "icon" }) {
   if (variant === "icon") {
     return (
-      <button
-        type="button"
+      <Button
+        size="icon"
+        variant="outline"
         aria-label="Sign out"
         onClick={() => signOut({ callbackUrl: "/" })}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-card text-muted-foreground transition hover:text-foreground"
+        className="text-muted-foreground hover:text-foreground"
       >
         <LogOut size={16} />
-      </button>
+      </Button>
     );
   }
 
@@ -30,12 +32,13 @@ export function SignOutButton({ variant = "sidebar" }: { variant?: "sidebar" | "
   }
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="subtle"
+      size="md"
       onClick={() => signOut({ callbackUrl: "/" })}
-      className="w-full rounded-sm border border-border px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
+      className="w-full justify-start"
     >
       Sign out
-    </button>
+    </Button>
   );
 }

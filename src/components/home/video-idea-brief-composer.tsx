@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { type VideoBriefField, VIDEO_FORMATS } from "@/lib/video-brief";
+import { VIDEO_FORMATS } from "@/lib/video-brief";
+import { Button } from "@/components/ui/button";
+import { FieldLabel, Input, Textarea } from "@/components/ui/field";
 
 interface VideoIdeaBriefComposerProps {
   isSignedIn: boolean;
-}
-
-function formatFieldLabel(field: VideoBriefField) {
-  return field.charAt(0).toUpperCase() + field.slice(1);
 }
 
 export function VideoIdeaBriefComposer({ isSignedIn }: VideoIdeaBriefComposerProps) {
@@ -20,8 +18,16 @@ export function VideoIdeaBriefComposer({ isSignedIn }: VideoIdeaBriefComposerPro
   const [audience, setAudience] = useState("");
   const [tone, setTone] = useState("");
   const [constraints, setConstraints] = useState("");
+  const [step, setStep] = useState<"idea" | "details">("idea");
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+
+
+  function handleNextStep() {
+    if (!concept.trim()) return;
+    // In a real implementation, autofill logic would go here.
+    setStep("details");
+  }
 
   async function handleCreateProject() {
     if (!concept.trim() || isCreatingProject) {
@@ -71,79 +77,107 @@ export function VideoIdeaBriefComposer({ isSignedIn }: VideoIdeaBriefComposerPro
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <label className="block">
-          <span className="text-sm font-semibold text-foreground">Your Video Concept</span>
-          <p className="text-xs text-muted-foreground mt-1">Be as detailed as you want. More context helps generate better titles, hooks, and shots.</p>
-          <textarea
+    <div className="space-y-5">
+      {step === "idea" ? (
+        <div className="space-y-4">
+          <Textarea
+            id="home-concept"
             value={concept}
             onChange={(event) => setConcept(event.target.value)}
-            placeholder="What's your video idea? Describe the concept, angle, or moment you want to capture..."
-            className="mt-2 w-full min-h-32 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent"
+            placeholder="Describe the story, angle, or moment you want to capture..."
+            rows={6}
+            className="mt-2.5 min-h-44 resize-y bg-background/35 text-base"
           />
-        </label>
-      </div>
-
-      <div className="space-y-4 rounded-md border border-border bg-card/40 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Add Context (Optional)</p>
-
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Format</p>
-          <div className="flex flex-wrap gap-2">
-            {VIDEO_FORMATS.map((fmt) => (
-              <button
-                key={fmt}
-                type="button"
-                onClick={() => setFormat(format === fmt ? null : fmt)}
-                className={`rounded-sm border px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide transition ${
-                  format === fmt
-                    ? "border-accent/60 bg-accent/15 text-foreground"
-                    : "border-border text-muted-foreground hover:border-accent/40 hover:text-foreground"
-                }`}
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleNextStep}
+            disabled={!concept.trim()}
+            className="mt-2 w-full sm:w-auto"
+          >
+            Next
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4 border-t border-border/70 pt-4">
+          <FieldLabel htmlFor="home-concept">Video Idea</FieldLabel>
+          <Textarea
+            id="home-concept"
+            value={concept}
+            onChange={(event) => setConcept(event.target.value)}
+            rows={4}
+            className="mt-2.5 min-h-24 resize-y bg-background/35 text-base"
+            disabled
+          />
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <FieldLabel htmlFor="home-format" muted>
+                Format
+              </FieldLabel>
+              <select
+                id="home-format"
+                value={format ?? ""}
+                onChange={(event) => setFormat(event.target.value || null)}
+                className="mt-1.5 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                {fmt}
-              </button>
-            ))}
+                <option value="">Any format</option>
+                {VIDEO_FORMATS.map((fmt) => (
+                  <option key={fmt} value={fmt}>
+                    {fmt}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <FieldLabel htmlFor="home-audience" muted>
+                Audience
+              </FieldLabel>
+              <Input
+                id="home-audience"
+                value={audience}
+                onChange={(event) => setAudience(event.target.value)}
+                placeholder="Who this is for"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="home-tone" muted>
+                Tone
+              </FieldLabel>
+              <Input
+                id="home-tone"
+                value={tone}
+                onChange={(event) => setTone(event.target.value)}
+                placeholder="Calm, punchy, educational"
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="home-constraints" muted>
+                Constraints
+              </FieldLabel>
+              <Input
+                id="home-constraints"
+                value={constraints}
+                onChange={(event) => setConstraints(event.target.value)}
+                placeholder="Runtime, location, gear limits"
+                className="mt-1.5"
+              />
+            </div>
           </div>
+          {isSignedIn ? (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={handleCreateProject}
+              disabled={!concept.trim() || isCreatingProject}
+              className="mt-4 w-full sm:w-auto"
+            >
+              {isCreatingProject ? "Creating project..." : "Create project"}
+            </Button>
+          ) : null}
         </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Audience</span>
-            <input
-              type="text"
-              value={audience}
-              onChange={(event) => setAudience(event.target.value)}
-              placeholder="Who is this for?"
-              className="mt-1.5 w-full rounded-sm border border-border bg-background px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tone</span>
-            <input
-              type="text"
-              value={tone}
-              onChange={(event) => setTone(event.target.value)}
-              placeholder="e.g., casual, professional, funny"
-              className="mt-1.5 w-full rounded-sm border border-border bg-background px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent"
-            />
-          </label>
-        </div>
-
-        <label className="block">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Constraints</span>
-          <input
-            type="text"
-            value={constraints}
-            onChange={(event) => setConstraints(event.target.value)}
-            placeholder="e.g., under 5 min, one location, no budget"
-            className="mt-1.5 w-full rounded-sm border border-border bg-background px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-accent"
-          />
-        </label>
-      </div>
-
+      )}
       {!isSignedIn ? (
         <p className="text-center text-xs text-muted-foreground">
           <Link href="/login" className="underline underline-offset-2">
@@ -151,17 +185,7 @@ export function VideoIdeaBriefComposer({ isSignedIn }: VideoIdeaBriefComposerPro
           </Link>{" "}
           to create a project.
         </p>
-      ) : (
-        <button
-          type="button"
-          onClick={handleCreateProject}
-          disabled={!concept.trim() || isCreatingProject}
-          className="w-full rounded-md border border-border px-4 py-2.5 text-sm font-semibold uppercase tracking-wide transition hover:bg-muted disabled:opacity-50"
-        >
-          {isCreatingProject ? "Creating project..." : "Create Project"}
-        </button>
-      )}
-
+      ) : null}
       {createError ? <p className="text-center text-xs text-rose-500">{createError}</p> : null}
     </div>
   );

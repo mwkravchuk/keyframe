@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, Loader2 } from "lucide-react";
+import { ActionPanel } from "@/components/ui/action-panel";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/field";
 
 interface HookGeneratorProps {
   projectId: string;
@@ -138,13 +142,13 @@ export function HookGenerator({
   };
 
   return (
-    <div>
-      <div className="flex items-baseline gap-2 mb-2">
+    <ActionPanel>
+      <div className="mb-2 flex items-baseline gap-2">
         <Zap className="h-4 w-4 text-muted-foreground" />
         <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">
           Hook Generator
         </h3>
-        <button
+        <Button
           onClick={() => {
             if (!isExpanded) {
               handleGenerate();
@@ -153,7 +157,9 @@ export function HookGenerator({
             }
           }}
           disabled={isLoading}
-          className="flex items-center gap-1 text-xs text-accent transition hover:opacity-80 disabled:opacity-50"
+          variant="ghost"
+          size="sm"
+          className="ml-auto flex items-center gap-1"
         >
           {isLoading ? (
             <>
@@ -167,40 +173,41 @@ export function HookGenerator({
               Generate <span className="opacity-60">→</span>
             </>
           )}
-        </button>
+        </Button>
       </div>
-      <p className="text-xs text-muted-foreground ml-6 mb-3">
+      <p className="mb-3 ml-6 text-xs text-muted-foreground">
         First 3 seconds that stops the scroll
       </p>
 
-      <div className="ml-6 mb-4 rounded border border-border/50 bg-card/20 p-3">
+      <div className="mb-4 ml-6 border-l border-border/70 pl-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
           Saved Hooks ({shortlistedHooks.length})
         </p>
 
         {shortlistedHooks.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No saved hooks yet.</p>
+          <EmptyState compact title="No saved hooks yet" description="Save your best hooks to consolidate later." />
         ) : (
           <div className="space-y-2">
             {shortlistedHooks.map((hook, idx) => (
               <div
                 key={`${hook}-${idx}`}
-                className="flex items-start justify-between gap-2 rounded border border-border/30 bg-background px-2 py-1.5 text-xs"
+                className="flex items-start justify-between gap-2 border-b border-border/60 py-2 text-xs"
               >
                 <span className="flex-1">{hook}</span>
-                <button
+                <Button
                   onClick={() => handleShortlistToggle(hook)}
-                  className="whitespace-nowrap rounded bg-border/20 px-2 py-0.5 text-xs text-muted-foreground transition hover:bg-border/40"
+                  variant="subtle"
+                  size="sm"
                 >
                   Remove
-                </button>
+                </Button>
               </div>
             ))}
           </div>
         )}
 
         <div className="mt-3 flex gap-2">
-          <input
+          <Input
             value={manualHook}
             onChange={(event) => setManualHook(event.target.value)}
             onKeyDown={(event) => {
@@ -210,57 +217,63 @@ export function HookGenerator({
               }
             }}
             placeholder="Write your own hook to save"
-            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs"
+            className="text-xs"
           />
-          <button
+          <Button
             onClick={handleManualSave}
-            className="rounded bg-border/20 px-2 py-1.5 text-xs text-muted-foreground transition hover:bg-border/40"
+            variant="subtle"
+            size="sm"
           >
             Save
-          </button>
+          </Button>
         </div>
       </div>
 
       {isExpanded && (
-        <div className="ml-6 space-y-2 rounded border border-border/50 bg-card/20 p-3">
+        <div className="ml-6 space-y-2 border-l border-border/70 pl-3">
           {isLoading ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
               Generating hooks...
             </div>
           ) : error ? (
-            <div className="text-xs text-red-500">{error}</div>
+            <div className="text-xs text-destructive">{error}</div>
           ) : hooks.length > 0 ? (
             <div className="space-y-2">
               {hooks.map((hook, idx) => (
                 <div
                   key={idx}
-                  className="flex items-start justify-between gap-2 rounded border border-border/30 bg-background px-2 py-1.5 text-xs"
+                  className="flex items-start justify-between gap-2 border-b border-border/60 py-2 text-xs"
                 >
                   <span className="flex-1">{hook}</span>
-                  <button
+                  <Button
                     onClick={() => handleShortlistToggle(hook)}
-                    className={`whitespace-nowrap px-2 py-0.5 rounded transition text-xs ${
+                    variant={shortlistedHooks.includes(hook) ? "outline" : "subtle"}
+                    size="sm"
+                    className={`whitespace-nowrap ${
                       shortlistedHooks.includes(hook)
-                        ? "bg-accent/20 text-accent"
-                        : "bg-border/20 text-muted-foreground hover:bg-border/40"
+                        ? "text-foreground"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {shortlistedHooks.includes(hook) ? "Saved" : "Save"}
-                  </button>
+                  </Button>
                 </div>
               ))}
-              <button
+              <Button
                 onClick={handleGenerate}
                 disabled={isLoading}
-                className="mt-2 text-xs text-muted-foreground transition hover:text-accent disabled:opacity-50"
+                variant="ghost"
+                size="sm"
               >
                 Regenerate
-              </button>
+              </Button>
             </div>
-          ) : null}
+          ) : (
+            <EmptyState compact title="No hooks yet" description="Generate once to see opening line ideas." />
+          )}
         </div>
       )}
-    </div>
+    </ActionPanel>
   );
 }

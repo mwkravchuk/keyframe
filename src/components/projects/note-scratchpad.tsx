@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Textarea } from "@/components/ui/field";
 
 interface NoteScratchpadProps {
   projectId: string;
@@ -22,6 +23,7 @@ export function NoteScratchpad({ projectId, initialNotes, variant = "light" }: N
 
     // If notes haven't changed from initial, no need to save
     if (notes === initialNotes) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSaved(true);
       return;
     }
@@ -79,17 +81,17 @@ export function NoteScratchpad({ projectId, initialNotes, variant = "light" }: N
           {isSaving ? "Saving..." : saved ? "Saved" : "Unsaved"}
         </span>
       </div>
-      <textarea
+      <Textarea
         id="notes"
         name="notes"
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Quick thoughts, reference links, segment ideas, anything that helps you remember the vision."
         rows={10}
-        className={`mt-2 w-full h-full rounded-sm px-3 py-2 text-sm ${
+        className={`mt-2 h-full w-full ${
           variant === "dark"
             ? "border border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500"
-            : "border border-border bg-background placeholder:text-muted-foreground/50"
+            : "bg-background/70"
         }`}
       />
     </div>

@@ -23,11 +23,15 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
 import {
   VIDEO_PROJECT_STAGE_LABELS,
   type VideoProjectStage,
 } from "@/lib/video-projects";
+import { ActionPanel } from "@/components/ui/action-panel";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SectionHeader } from "@/components/ui/section-header";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { IdeaCard, VideoCard } from "@/components/projects/project-cards";
 
 type ProjectItem = {
   id: string;
@@ -60,33 +64,26 @@ const KANBAN_STAGES = ["DRAFTING", "RECORDING", "EDITING", "PUBLISHED"] as const
 
 type KanbanStage = (typeof KANBAN_STAGES)[number];
 
-const STAGE_STYLES: Record<
-  KanbanStage,
-  { lane: string; badge: string; count: string; hover: string }
-> = {
+const STAGE_STYLES: Record<KanbanStage, { lane: string; hover: string; tone: "info" | "warning" | "accent" | "success" }> = {
   DRAFTING: {
-    lane: "border-sky-500/25 bg-sky-500/6",
-    badge: "border-sky-400/35 bg-sky-400/14 text-sky-300",
-    count: "text-sky-300",
-    hover: "data-[over=true]:border-sky-300/40",
+    lane: "bg-card/85",
+    hover: "data-[over=true]:border-sky-500/45",
+    tone: "info",
   },
   RECORDING: {
-    lane: "border-blue-500/25 bg-blue-500/6",
-    badge: "border-blue-400/35 bg-blue-400/14 text-blue-300",
-    count: "text-blue-300",
-    hover: "data-[over=true]:border-blue-300/40",
+    lane: "bg-card/85",
+    hover: "data-[over=true]:border-amber-500/45",
+    tone: "warning",
   },
   EDITING: {
-    lane: "border-violet-500/25 bg-violet-500/6",
-    badge: "border-violet-400/35 bg-violet-400/14 text-violet-300",
-    count: "text-violet-300",
-    hover: "data-[over=true]:border-violet-300/40",
+    lane: "bg-card/85",
+    hover: "data-[over=true]:border-violet-500/45",
+    tone: "accent",
   },
   PUBLISHED: {
-    lane: "border-emerald-500/25 bg-emerald-500/6",
-    badge: "border-emerald-400/35 bg-emerald-400/14 text-emerald-300",
-    count: "text-emerald-300",
-    hover: "data-[over=true]:border-emerald-300/40",
+    lane: "bg-card/85",
+    hover: "data-[over=true]:border-emerald-500/45",
+    tone: "success",
   },
 };
 
@@ -170,23 +167,27 @@ function IdeasSection({
       data-over={isOver}
       className="py-3 data-[over=true]:[&_.ideas-input]:border-accent"
     >
-      <form onSubmit={handleSubmit} className="mb-3">
-        <textarea
-          value={line}
-          onChange={(event) => setLine(event.target.value)}
-          onKeyDown={handleKeyDown}
-          rows={2}
-          placeholder="Type an idea title or fleeting thought... Press Enter to save."
-          className="ideas-input w-full resize-none rounded-sm border border-border bg-transparent px-2.5 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
-        />
-      </form>
+      <ActionPanel className="mb-3 border-dashed bg-card/70">
+        <form onSubmit={handleSubmit}>
+          <textarea
+            value={line}
+            onChange={(event) => setLine(event.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={2}
+            placeholder="Type an idea title or fleeting thought. Press Enter to save."
+            className="ideas-input w-full resize-none rounded-md border border-border bg-background/70 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
+          />
+        </form>
+      </ActionPanel>
 
       <SortableContext items={ideas.map((idea) => idea.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {ideas.length === 0 ? (
-            <p className="px-1 py-2 text-[11px] text-muted-foreground">
-              No ideas yet. Add one line and keep moving.
-            </p>
+            <EmptyState
+              compact
+              title="No ideas yet"
+              description="Drop in quick thoughts here to seed your next projects."
+            />
           ) : (
             ideas.map((idea) => (
               <ProjectCard key={idea.id} project={idea} kind="idea" channels={channels} />
@@ -214,21 +215,21 @@ function StageColumn({
     <section
       ref={setNodeRef}
       data-over={isOver}
-      className={`min-w-0 rounded-md border p-2.5 transition ${style.lane} ${style.hover}`}
+      className={`min-w-0 rounded-lg border p-2.5 shadow-soft transition ${style.lane} ${style.hover}`}
     >
       <div className="flex items-center justify-between">
-        <span className={`inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${style.badge}`}>
-          {VIDEO_PROJECT_STAGE_LABELS[stage]}
-        </span>
-        <span className={`text-[11px] font-medium ${style.count}`}>{projects.length}</span>
+        <StatusBadge tone={style.tone}>{VIDEO_PROJECT_STAGE_LABELS[stage]}</StatusBadge>
+        <span className="text-[11px] font-medium text-muted-foreground">{projects.length}</span>
       </div>
 
       <SortableContext items={projects.map((project) => project.id)} strategy={verticalListSortingStrategy}>
         <div className="mt-2.5 space-y-2.5">
           {projects.length === 0 ? (
-            <p className="rounded-sm border border-dashed border-border px-2 py-3 text-center text-[11px] text-muted-foreground">
-              No projects in this stage.
-            </p>
+            <EmptyState
+              compact
+              title="Empty stage"
+              description="Drag a card here when work reaches this step."
+            />
           ) : (
             projects.map((project) => (
               <ProjectCard key={project.id} project={project} kind="project" channels={channels} />
@@ -258,9 +259,27 @@ function ProjectCard({
     : null;
   const channelAvatarUrl = channel?.avatarUrl ?? null;
   const channelInitial = (channel?.title?.trim()?.[0] ?? "Y").toUpperCase();
+  const summary = project.notes || project.nextStep || project.concept || "No context added yet.";
+  const channelBadge = project.youtubeChannelId ? (
+    <span
+      className="inline-flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-[9px] font-semibold text-muted-foreground"
+      title={channel?.title ?? project.youtubeChannelTitle ?? "YouTube channel"}
+    >
+      {channelAvatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={channelAvatarUrl}
+          alt={channel?.title ?? "YouTube channel avatar"}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <span>{channelInitial}</span>
+      )}
+    </span>
+  ) : null;
 
   return (
-    <article
+    <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
@@ -273,71 +292,24 @@ function ProjectCard({
         transform: CSS.Transform.toString(transform),
         transition,
       }}
-      className={`group cursor-grab rounded-sm border bg-card px-2.5 py-2.5 active:cursor-grabbing ${
-        isDragging ? "border-accent opacity-35" : "border-border"
-      }`}
+      className="cursor-grab active:cursor-grabbing"
     >
       {kind === "idea" ? (
-        <div className="flex items-center justify-between gap-2 border-l-2 border-border/80 pl-2">
-          <p className="line-clamp-2 text-[13px] leading-snug text-foreground/95">{project.title}</p>
-          <span className="rounded-sm border border-border p-1 text-muted-foreground opacity-20 transition group-hover:opacity-100">
-            <GripVertical size={14} />
-          </span>
-        </div>
+        <IdeaCard title={project.title} dragging={isDragging} />
       ) : (
-        <>
-          <div className="flex items-start justify-between gap-2">
-            <p className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground transition hover:text-accent">
-              {project.title}
-            </p>
-            <div className="flex items-center gap-1.5">
-              {project.youtubeChannelId && (
-                <span
-                  className="inline-flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-[9px] font-semibold text-muted-foreground"
-                  title={channel?.title ?? project.youtubeChannelTitle ?? "YouTube channel"}
-                >
-                  {channelAvatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={channelAvatarUrl}
-                      alt={channel?.title ?? "YouTube channel avatar"}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span>{channelInitial}</span>
-                  )}
-                </span>
-              )}
-
-              <span className="rounded-sm border border-border p-1 text-muted-foreground opacity-20 transition group-hover:opacity-100">
-                <GripVertical size={14} />
-              </span>
-            </div>
-          </div>
-
-          <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
-            {project.notes || project.nextStep || project.concept || "No context added yet."}
-          </p>
-        </>
+        <VideoCard title={project.title} summary={summary} dragging={isDragging} channel={channelBadge} />
       )}
-    </article>
+    </div>
   );
 }
 
 function ProjectCardOverlay({ project }: { project: ProjectItem }) {
-  return (
-    <article className="w-56 cursor-grabbing rounded-sm border border-accent bg-card px-2.5 py-2.5 shadow-xl shadow-black/20">
-      <div className="flex items-start justify-between gap-2">
-        <p className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground">{project.title}</p>
-        <span className="rounded-sm border border-border p-1 text-muted-foreground">
-          <GripVertical size={14} />
-        </span>
-      </div>
+  const summary = project.notes || project.nextStep || project.concept || "No context added yet.";
 
-      <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
-        {project.notes || project.nextStep || project.concept || "No context added yet."}
-      </p>
-    </article>
+  return (
+    <div className="w-56 cursor-grabbing">
+      <VideoCard title={project.title} summary={summary} className="border-accent shadow-panel" />
+    </div>
   );
 }
 
@@ -363,14 +335,13 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
   }, [activeChannelId, channels]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setProjects(initialProjects);
   }, [initialProjects]);
 
-  useEffect(() => {
-    if (channelScope === "active" && !activeChannelId) {
-      setChannelScope("all");
-    }
-  }, [channelScope, activeChannelId]);
+  const effectiveChannelScope: ChannelScope =
+    channelScope === "active" && !activeChannelId ? "all" : channelScope;
+
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -385,12 +356,12 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
   );
 
   const visibleProjects = useMemo(() => {
-    if (channelScope !== "active" || !activeChannelId) {
+    if (effectiveChannelScope !== "active" || !activeChannelId) {
       return projects;
     }
 
     return projects.filter((project) => project.youtubeChannelId === activeChannelId);
-  }, [projects, channelScope, activeChannelId]);
+  }, [projects, effectiveChannelScope, activeChannelId]);
 
   const ideas = useMemo(
     () => visibleProjects.filter((project) => project.stage === IDEA_STAGE),
@@ -552,105 +523,109 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="flex items-center justify-between gap-4 pb-4">
-        <span className="text-sm font-semibold tracking-tight text-foreground">Projects</span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setChannelScope("all")}
-            className={`h-9 rounded-sm border px-3 text-sm font-medium transition ${
-              channelScope === "all"
-                ? "border-foreground/35 text-foreground"
-                : "border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            All channels
-          </button>
-
-          <details ref={channelDetailsRef} className="relative">
-            <summary
-              className={`flex h-9 w-56 list-none cursor-pointer items-center justify-between rounded-sm border px-3 text-sm transition ${
-                channelScope === "active"
-                  ? "border-foreground/35 text-foreground"
+      <SectionHeader
+        eyebrow="Production board"
+        title="Dashboard"
+        description="Capture ideas fast, then move projects through production with clear stage ownership."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setChannelScope("all")}
+              className={`h-9 rounded-md border px-3 text-sm font-medium transition cursor-pointer active:scale-[0.99] ${
+                effectiveChannelScope === "all"
+                  ? "border-foreground/35 bg-card text-foreground"
                   : "border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              <span className="truncate">
-                {channelScope === "active" && activeChannelTitle
-                  ? activeChannelTitle
-                  : "Choose channel"}
-              </span>
-              <span className="ml-2 text-xs">▾</span>
-            </summary>
+              All channels
+            </button>
 
-            <div className="absolute right-0 z-20 mt-2 w-72 rounded-sm border border-border bg-card p-2 shadow-2xl shadow-black/20">
-              <div className="max-h-64 space-y-1 overflow-auto pr-1">
-                {channels.length === 0 ? (
-                  <p className="rounded-sm px-2 py-2 text-xs text-muted-foreground">
-                    No linked channels yet.
-                  </p>
-                ) : (
-                  channels.map((channel) => {
-                    const isActive = channel.channelId === activeChannelId;
+            <details ref={channelDetailsRef} className="relative">
+              <summary
+                className={`flex h-9 w-56 list-none cursor-pointer items-center justify-between rounded-md border px-3 text-sm transition active:scale-[0.99] ${
+                  effectiveChannelScope === "active"
+                    ? "border-foreground/35 bg-card text-foreground"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="truncate">
+                  {effectiveChannelScope === "active" && activeChannelTitle
+                    ? activeChannelTitle
+                    : "Choose channel"}
+                </span>
+                <span className="ml-2 text-xs">▾</span>
+              </summary>
 
-                    return (
-                      <button
-                        key={channel.channelId}
-                        type="button"
-                        disabled={isSwitchingChannel}
-                        onClick={() => {
-                          void handleChooseChannel(channel.channelId);
-                        }}
-                        className={`flex w-full items-center justify-between rounded-sm border px-2 py-2 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                          isActive
-                            ? "border-foreground/35 text-foreground"
-                            : "border-border text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <span className="truncate">{channel.title?.trim() || channel.channelId}</span>
-                        {isActive ? <span className="ml-2 shrink-0 text-[10px]">Active</span> : null}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
+              <ActionPanel className="absolute right-0 z-20 mt-2 w-72 p-2 shadow-panel">
+                <div className="max-h-64 space-y-1 overflow-auto pr-1">
+                  {channels.length === 0 ? (
+                    <p className="rounded-md px-2 py-2 text-xs text-muted-foreground">
+                      No linked channels yet.
+                    </p>
+                  ) : (
+                    channels.map((channel) => {
+                      const isActive = channel.channelId === activeChannelId;
 
-              <div className="mt-2 border-t border-border pt-2">
-                <button
-                  type="button"
-                  disabled={isConnectingChannel}
-                  onClick={() => {
-                    void handleConnectChannel();
-                  }}
-                  className="w-full rounded-sm border border-border px-2 py-2 text-left text-xs text-muted-foreground transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isConnectingChannel ? "Opening Google..." : "Connect new channel"}
-                </button>
-              </div>
+                      return (
+                        <button
+                          key={channel.channelId}
+                          type="button"
+                          disabled={isSwitchingChannel}
+                          onClick={() => {
+                            void handleChooseChannel(channel.channelId);
+                          }}
+                          className={`flex w-full items-center justify-between rounded-md border px-2 py-2 text-left text-xs transition cursor-pointer active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 ${
+                            isActive
+                              ? "border-foreground/35 bg-card text-foreground"
+                              : "border-border text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          <span className="truncate">{channel.title?.trim() || channel.channelId}</span>
+                          {isActive ? <span className="ml-2 shrink-0 text-[10px]">Active</span> : null}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
 
-              {channelActionError ? (
-                <p className="mt-2 px-1 text-[11px] text-rose-400">{channelActionError}</p>
-              ) : null}
-            </div>
-          </details>
-        </div>
-      </div>
+                <div className="mt-2 border-t border-border pt-2">
+                  <button
+                    type="button"
+                    disabled={isConnectingChannel}
+                    onClick={() => {
+                      void handleConnectChannel();
+                    }}
+                    className="w-full rounded-md border border-border px-2 py-2 text-left text-xs text-muted-foreground transition hover:text-foreground cursor-pointer active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isConnectingChannel ? "Opening Google..." : "Connect new channel"}
+                  </button>
+                </div>
 
-      <IdeasSection ideas={ideas} channels={channels} onCreate={handleCreateIdea} />
+                {channelActionError ? (
+                  <p className="mt-2 px-1 text-[11px] text-destructive">{channelActionError}</p>
+                ) : null}
+              </ActionPanel>
+            </details>
+          </div>
+        }
+      />
 
-      <div className="flex items-center justify-between gap-3 pb-3">
-        <div className="flex items-center gap-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+        <IdeasSection ideas={ideas} channels={channels} onCreate={handleCreateIdea} />
+
+        <div className="flex flex-wrap items-center gap-3 xl:justify-end">
           <Link
             href="/"
-            className="rounded-sm border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
+            className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
           >
             Use video generator
           </Link>
           <details ref={createProjectDetailsRef} className="group relative">
-            <summary className="list-none cursor-pointer rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90">
+            <summary className="list-none cursor-pointer rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90 active:scale-[0.99]">
               New project
             </summary>
-            <div className="absolute right-0 z-20 mt-3 w-90 rounded-sm border border-border bg-card p-4 shadow-2xl shadow-black/20">
+            <ActionPanel className="absolute right-0 z-20 mt-3 w-88 p-4 shadow-panel">
               <form
                 action={createProjectAction}
                 onSubmit={() => {
@@ -670,7 +645,7 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
                     id="proj-title"
                     name="title"
                     required
-                    className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
@@ -681,7 +656,7 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
                     id="proj-concept"
                     name="concept"
                     rows={3}
-                    className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
@@ -691,7 +666,7 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
                   <input
                     id="proj-nextStep"
                     name="nextStep"
-                    className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
@@ -702,22 +677,22 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
                     id="proj-targetPublishAt"
                     name="targetPublishAt"
                     type="date"
-                    className="mt-1 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full rounded-sm border border-border px-3 py-2 text-sm text-foreground transition hover:bg-muted"
+                  className="w-full rounded-md border border-border px-3 py-2 text-sm text-foreground transition hover:bg-muted cursor-pointer active:scale-[0.99]"
                 >
                   Create project
                 </button>
               </form>
-            </div>
+            </ActionPanel>
           </details>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {KANBAN_STAGES.map((stage) => (
           <StageColumn
             key={stage}

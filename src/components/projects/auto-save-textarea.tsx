@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ActionPanel } from "@/components/ui/action-panel";
+import { Textarea } from "@/components/ui/field";
 
 interface AutoSaveTextareaProps {
   projectId: string;
@@ -76,7 +78,7 @@ export function AutoSaveTextarea({
   }, [field, projectId, value]);
 
   return (
-    <div>
+    <ActionPanel>
       <div className="flex items-center justify-between">
         <label
           htmlFor={field}
@@ -90,7 +92,7 @@ export function AutoSaveTextarea({
           {isSaving ? "Saving..." : error ? error : saved ? "Saved" : "Unsaved"}
         </span>
       </div>
-      <textarea
+      <Textarea
         id={field}
         name={field}
         value={value}
@@ -100,9 +102,9 @@ export function AutoSaveTextarea({
         className={`mt-2 w-full rounded-sm px-3 py-2 text-sm ${
           variant === "dark"
             ? "border border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500"
-            : "border border-zinc-300 bg-white/80 placeholder:text-zinc-500"
+            : "bg-background/75"
         }`}
       />
-    </div>
+    </ActionPanel>
   );
 }

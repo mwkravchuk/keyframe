@@ -70,13 +70,13 @@ export function ProjectTitleInline({ projectId, initialTitle }: ProjectTitleInli
               setIsEditing(false);
             }
           }}
-          className="w-full border-none bg-transparent p-0 text-3xl font-semibold tracking-tight outline-none"
+          className="w-full border-none bg-transparent p-0 text-2xl font-semibold tracking-tight outline-none"
         />
       ) : (
         <button
           type="button"
           onClick={() => setIsEditing(true)}
-          className="w-full text-left text-3xl font-semibold tracking-tight transition hover:opacity-80"
+          className="w-full cursor-pointer text-left text-2xl font-semibold tracking-tight transition hover:opacity-80"
         >
           {title || "Untitled Project"}
         </button>

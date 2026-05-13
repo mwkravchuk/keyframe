@@ -1,35 +1,59 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f5f5;
-  --foreground: #0a0a0a;
-  --muted: #ececec;
-  --muted-foreground: #5e5e5e;
+  --background: #f3f3f2;
+  --foreground: #131313;
+  --muted: #e8e8e7;
+  --muted-foreground: #646464;
   --card: #ffffff;
   --card-foreground: #0a0a0a;
-  --surface-2: #efefef;
-  --border: #d4d4d4;
-  --accent: #0a0a0a;
-  --accent-foreground: #f5f5f5;
+  --surface-2: #ededec;
+  --border: #d2d2d0;
+  --accent: #181818;
+  --accent-foreground: #f6f6f5;
+  --destructive: #b3261e;
+  --destructive-foreground: #fff5f4;
   --focus-ring: color-mix(in oklab, var(--foreground) 70%, white 30%);
-  --radius-sm: 0.125rem;
-  --radius-md: 0.2rem;
-  --radius-lg: 0.3rem;
-  --radius-xl: 0.4rem;
+  --radius: 0.75rem;
+  --radius-sm: 0.35rem;
+  --radius-md: 0.55rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-pill: 999px;
+  --shadow-soft: 0 1px 2px rgba(10, 10, 10, 0.04), 0 10px 20px rgba(10, 10, 10, 0.04);
+  --shadow-card: 0 1px 1px rgba(10, 10, 10, 0.04), 0 8px 18px rgba(10, 10, 10, 0.05);
+  --shadow-panel: 0 1px 2px rgba(10, 10, 10, 0.06), 0 20px 40px rgba(10, 10, 10, 0.08);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --motion-quick: 140ms;
+  --motion-base: 220ms;
+  --motion-slow: 380ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
 .dark {
-  --background: #060606;
-  --foreground: #f5f5f5;
-  --muted: #101010;
-  --muted-foreground: #9a9a9a;
-  --card: #0d0d0d;
-  --surface-2: #131313;
-  --card-foreground: #f5f5f5;
-  --border: #2a2a2a;
-  --accent: #f5f5f5;
-  --accent-foreground: #0a0a0a;
+  --background: #080808;
+  --foreground: #f3f3f1;
+  --muted: #121212;
+  --muted-foreground: #a0a09e;
+  --card: #0f0f0f;
+  --surface-2: #151515;
+  --card-foreground: #f3f3f1;
+  --border: #2b2b2a;
+  --accent: #f3f3f1;
+  --accent-foreground: #111111;
+  --destructive: #ff7b72;
+  --destructive-foreground: #200d0d;
   --focus-ring: color-mix(in oklab, var(--foreground) 72%, black 28%);
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 22px rgba(0, 0, 0, 0.28);
+  --shadow-card: 0 1px 1px rgba(0, 0, 0, 0.4), 0 14px 24px rgba(0, 0, 0, 0.32);
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.5), 0 24px 48px rgba(0, 0, 0, 0.45);
 }
 
 @theme inline {
@@ -43,6 +67,15 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-card: var(--shadow-card);
+  --shadow-panel: var(--shadow-panel);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -54,12 +87,25 @@
 body {
   min-height: 100%;
   background:
-    radial-gradient(circle at 14% -12%, color-mix(in oklab, var(--foreground) 7%, transparent), transparent 34%),
-    radial-gradient(circle at 82% -16%, color-mix(in oklab, var(--foreground) 5%, transparent), transparent 30%),
+    radial-gradient(circle at 12% -10%, rgba(255, 89, 0, 0.46), transparent 40%),
+    radial-gradient(circle at 84% -14%, rgba(255, 38, 0, 0.34), transparent 42%),
+    radial-gradient(circle at 62% 120%, rgba(255, 0, 55, 0.2), transparent 54%),
+    linear-gradient(180deg, rgba(255, 209, 172, 0.56), transparent 44%),
+    radial-gradient(circle at 22% 84%, color-mix(in oklab, var(--foreground) 4%, transparent), transparent 42%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   text-rendering: optimizeLegibility;
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at 14% -12%, rgba(128, 8, 48, 0.5), transparent 42%),
+    radial-gradient(circle at 84% -14%, rgba(192, 48, 42, 0.34), transparent 44%),
+    radial-gradient(circle at 58% 120%, rgba(92, 12, 54, 0.44), transparent 58%),
+    linear-gradient(180deg, rgba(44, 10, 26, 0.42), transparent 46%),
+    radial-gradient(circle at 20% 86%, rgba(122, 20, 50, 0.28), transparent 48%),
+    var(--background);
 }
 
 a {
@@ -79,4 +125,51 @@ h3 {
 
 ::selection {
   background: color-mix(in oklab, var(--foreground) 24%, transparent);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.kf-reveal {
+  animation: fade-up var(--motion-slow) var(--ease-standard) both;
+}
+
+.kf-reveal-delay-1 {
+  animation-delay: 80ms;
+}
+
+.kf-reveal-delay-2 {
+  animation-delay: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kf-reveal,
+  .kf-reveal-delay-1,
+  .kf-reveal-delay-2 {
+    animation: none;
+  }
+}
+
+.kf-project-detail .kf-action-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  backdrop-filter: none;
+}
+
+.kf-project-detail aside .kf-action-panel + .kf-action-panel,
+.kf-project-detail main .kf-action-panel + .kf-action-panel {
+  border-top: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  padding-top: 1.25rem;
 }

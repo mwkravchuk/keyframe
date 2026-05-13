@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lightbulb } from "lucide-react";
+import { ActionPanel } from "@/components/ui/action-panel";
+import { Button } from "@/components/ui/button";
 
 interface ConsolidatorPhaseProps {
   projectId: string;
@@ -68,7 +70,7 @@ export function ConsolidatorPhase({
   };
 
   return (
-    <div className="mt-12 border-t border-border pt-8">
+    <ActionPanel className="mt-4">
       <div className="mb-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
           Project Consolidator
@@ -97,22 +99,24 @@ export function ConsolidatorPhase({
                 return (
                   <div
                     key={value}
-                    className="flex items-start justify-between gap-3 rounded-sm border border-border/50 bg-card/30 p-3"
+                    className="flex items-start justify-between gap-3 rounded-md border border-border bg-background/70 p-3"
                   >
                     <p className="text-sm text-foreground leading-relaxed flex-1 wrap-break-word">
                       {value}
                     </p>
-                    <button
+                    <Button
                       onClick={() => handleApplySelection(category.fieldName, value)}
                       disabled={isApplying === category.fieldName || isCurrent}
-                      className={`shrink-0 whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium transition ${
+                      variant={isCurrent ? "outline" : "subtle"}
+                      size="sm"
+                      className={`shrink-0 whitespace-nowrap ${
                         isCurrent
-                          ? "bg-accent/20 text-accent"
-                          : "bg-border/20 text-muted-foreground hover:bg-border/40 disabled:opacity-50"
+                          ? "text-foreground"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {isCurrent ? "Applied" : isApplying === category.fieldName ? "Applying..." : "Apply"}
-                    </button>
+                    </Button>
                   </div>
                 );
               })}
@@ -122,8 +126,8 @@ export function ConsolidatorPhase({
       </div>
 
       {error && (
-        <div className="mt-3 text-xs text-red-500">{error}</div>
+        <div className="mt-3 text-xs text-destructive">{error}</div>
       )}
-    </div>
+    </ActionPanel>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   callbackUrl?: string;
@@ -47,14 +48,15 @@ export function ConnectYoutubeChannelButton({ callbackUrl = "/projects?link=1" }
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
+      <Button
         type="button"
+        variant="subtle"
+        size="sm"
         onClick={handleClick}
         disabled={isLoading}
-        className="rounded-sm border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isLoading ? "Opening Google..." : "Connect another channel"}
-      </button>
+      </Button>
       {error ? <p className="text-[11px] text-rose-400">{error}</p> : null}
     </div>
   );

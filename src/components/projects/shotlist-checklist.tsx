@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ActionPanel } from "@/components/ui/action-panel";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/field";
 
 type ShotItem = {
   id: string;
@@ -216,7 +220,7 @@ export function ShotlistChecklist({ projectId, initialValue }: ShotlistChecklist
   const totalCount = items.length;
 
   return (
-    <div className="rounded-sm border border-border bg-card/20 p-3">
+    <ActionPanel>
       <div className="mb-2 flex items-center justify-between gap-2">
         <label className="text-xs font-semibold uppercase tracking-wide text-foreground">Scene Planner</label>
         <span className="text-[11px] text-muted-foreground/70">
@@ -228,54 +232,59 @@ export function ShotlistChecklist({ projectId, initialValue }: ShotlistChecklist
         Generate realistic moments to remember when to pull the camera out.
       </p>
 
-      <div className="mb-4 rounded-sm border border-border/60 bg-background/60 p-2.5">
+      <div className="mb-4 rounded-md border border-border bg-background/60 p-2.5">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Suggested Situations</p>
-          <button
+          <Button
             type="button"
             onClick={generateSituations}
             disabled={isGenerating}
-            className="rounded-sm border border-border px-2 py-1 text-[11px] font-semibold uppercase tracking-wide transition hover:bg-muted disabled:opacity-60"
+            variant="subtle"
+            size="sm"
           >
             {isGenerating ? "Generating..." : suggestions.length > 0 ? "Regenerate" : "Generate"}
-          </button>
+          </Button>
         </div>
 
-        {generateError ? <p className="mb-2 text-xs text-rose-500">{generateError}</p> : null}
+        {generateError ? <p className="mb-2 text-xs text-destructive">{generateError}</p> : null}
 
         {suggestions.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No suggestions yet. Generate a fresh batch.</p>
+          <EmptyState compact title="No suggestions yet" description="Generate a fresh batch to start building the scene list." />
         ) : (
           <>
             <div className="space-y-2">
               {suggestions.map((text, index) => (
-                <div key={`${text}-${index}`} className="flex items-start gap-2 rounded-sm border border-border bg-background px-2 py-1.5">
+                <div key={`${text}-${index}`} className="flex items-start gap-2 rounded-md border border-border bg-background px-2 py-1.5">
                   <p className="flex-1 text-sm text-foreground">{text}</p>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => saveSuggestion(text)}
-                    className="rounded-sm border border-border px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground"
+                    variant="subtle"
+                    size="sm"
                   >
                     Save
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={() => setSuggestions((prev) => prev.filter((s) => s !== text))}
-                    className="rounded-sm border border-border px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground transition hover:text-foreground"
+                    variant="ghost"
+                    size="sm"
                   >
                     Dismiss
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
 
-            <button
+            <Button
               type="button"
               onClick={saveAllSuggestions}
-              className="mt-2 w-full rounded-sm border border-border px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition hover:bg-muted"
+              variant="outline"
+              size="sm"
+              className="mt-2 w-full"
             >
               Save All Suggestions
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -287,10 +296,10 @@ export function ShotlistChecklist({ projectId, initialValue }: ShotlistChecklist
 
       <div className="space-y-2">
         {items.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No saved prompts yet. Save suggestions or add your own.</p>
+          <EmptyState compact title="No saved prompts yet" description="Save suggestions or add your own moments below." />
         ) : (
           items.map((item) => (
-            <div key={item.id} className="flex items-start gap-2 rounded-sm border border-border bg-background px-2 py-1.5">
+            <div key={item.id} className="flex items-start gap-2 rounded-md border border-border bg-background px-2 py-1.5">
               <input
                 type="checkbox"
                 checked={item.done}
@@ -306,21 +315,22 @@ export function ShotlistChecklist({ projectId, initialValue }: ShotlistChecklist
                 }`}
                 placeholder="Describe the situation"
               />
-              <button
+              <Button
                 type="button"
                 onClick={() => removeItem(item.id)}
-                className="text-xs text-muted-foreground transition hover:text-foreground"
+                variant="ghost"
+                size="sm"
                 aria-label="Remove situation task"
               >
                 Remove
-              </button>
+              </Button>
             </div>
           ))
         )}
       </div>
 
       <div className="mt-3 flex gap-2">
-        <input
+        <Input
           value={newItemText}
           onChange={(event) => setNewItemText(event.target.value)}
           onKeyDown={(event) => {
@@ -330,16 +340,16 @@ export function ShotlistChecklist({ projectId, initialValue }: ShotlistChecklist
             }
           }}
           placeholder="Add situation (e.g. right before first tee shot)"
-          className="w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
         />
-        <button
+        <Button
           type="button"
           onClick={addItem}
-          className="rounded-sm border border-border bg-background px-3 py-2 text-xs font-semibold uppercase tracking-wide transition hover:bg-muted"
+          variant="outline"
+          size="md"
         >
           Add
-        </button>
+        </Button>
       </div>
-    </div>
+    </ActionPanel>
   );
 }

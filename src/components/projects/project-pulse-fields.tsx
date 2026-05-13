@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { VideoProjectStage } from "@prisma/client";
 import { ProjectPulseStagePicker } from "@/components/projects/project-pulse-stage-picker";
+import { FieldLabel, Input } from "@/components/ui/field";
 
 type Channel = {
   channelId: string;
@@ -63,10 +64,10 @@ export function ProjectPulseFields({
   const publishCountdownClass = daysUntilPublish == null
     ? "bg-border/40 text-muted-foreground"
     : daysUntilPublish < 0
-      ? "bg-red-500/15 text-red-700"
+      ? "bg-red-500/15 text-red-700 dark:text-red-300"
       : daysUntilPublish <= 3
-        ? "bg-amber-500/20 text-amber-700"
-        : "bg-emerald-500/20 text-emerald-700";
+        ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+        : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300";
 
   const lastSavedRef = useRef({
     targetPublishAt: initialTargetPublishAt,
@@ -140,8 +141,7 @@ export function ProjectPulseFields({
 
   return (
     <>
-
-      <div className="mt-4 space-y-4">
+      <div className="space-y-4">
         <div>
           <ProjectPulseStagePicker
             projectId={projectId}
@@ -151,20 +151,18 @@ export function ProjectPulseFields({
 
         <div>
           <div className="flex justify-between items-center">
-            <label htmlFor="targetPublishAt" className="text-xs font-semibold uppercase tracking-wide text-foreground">
-              Target Publish Date
-            </label>
+            <FieldLabel htmlFor="targetPublishAt">Target Publish Date</FieldLabel>
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${publishCountdownClass}`}>
               {publishCountdownLabel}
             </span>
           </div>
-          <input
+          <Input
             id="targetPublishAt"
             name="targetPublishAt"
             type="date"
             value={targetPublishAt}
             onChange={(event) => setTargetPublishAt(event.target.value)}
-            className="mt-2 w-full rounded-sm border border-border bg-background px-3 py-2 text-sm"
+            className="mt-2"
           />
         </div>
 
@@ -172,8 +170,8 @@ export function ProjectPulseFields({
           <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
             YouTube Channel
           </p>
-          <div className="mt-2 space-y-1.5 rounded-sm border border-border bg-background p-2">
-            <label className="flex cursor-pointer items-center gap-2 rounded-sm px-1.5 py-1 text-xs text-muted-foreground transition hover:bg-muted/40 hover:text-foreground">
+          <div className="mt-2 space-y-1.5 rounded-md border border-border bg-background/70 p-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition hover:bg-muted/40 hover:text-foreground">
               <input
                 type="radio"
                 name="youtubeChannelId"
@@ -189,7 +187,7 @@ export function ProjectPulseFields({
               return (
                 <label
                   key={c.channelId}
-                  className="flex cursor-pointer items-center gap-2 rounded-sm px-1.5 py-1 text-xs text-muted-foreground transition hover:bg-muted/40 hover:text-foreground"
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition hover:bg-muted/40 hover:text-foreground"
                 >
                   <input
                     type="radio"

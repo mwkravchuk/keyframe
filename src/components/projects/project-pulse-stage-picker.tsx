@@ -6,12 +6,12 @@ import type { VideoProjectStage } from "@prisma/client";
 import { VIDEO_PROJECT_STAGE_LABELS, VIDEO_PROJECT_STAGES } from "@/lib/video-projects";
 
 const STAGE_PULSE_STYLES: Record<VideoProjectStage, string> = {
-  IDEA: "border-zinc-300 bg-zinc-100 text-zinc-800",
-  DRAFTING: "border-sky-300 bg-sky-100 text-sky-800",
-  RECORDING: "border-blue-300 bg-blue-100 text-blue-800",
-  EDITING: "border-violet-300 bg-violet-100 text-violet-800",
-  PUBLISHED: "border-emerald-300 bg-emerald-100 text-emerald-800",
-  REVIEW: "border-amber-300 bg-amber-100 text-amber-800",
+  IDEA: "border-sky-400/35 bg-sky-400/14 text-sky-700 dark:text-sky-300",
+  DRAFTING: "border-violet-400/35 bg-violet-400/14 text-violet-700 dark:text-violet-300",
+  RECORDING: "border-blue-400/35 bg-blue-400/14 text-blue-700 dark:text-blue-300",
+  EDITING: "border-violet-400/35 bg-violet-400/14 text-violet-700 dark:text-violet-300",
+  PUBLISHED: "border-emerald-400/35 bg-emerald-400/14 text-emerald-700 dark:text-emerald-300",
+  REVIEW: "border-amber-400/35 bg-amber-400/14 text-amber-700 dark:text-amber-300",
 };
 
 interface ProjectPulseStagePickerProps {
@@ -67,10 +67,10 @@ export function ProjectPulseStagePicker({
           return (
             <label
               key={stage}
-              className={`inline-flex cursor-pointer items-center justify-center rounded-sm border px-2 py-1.5 text-xs font-semibold transition ${
+              className={`inline-flex cursor-pointer items-center justify-center rounded-md border px-2 py-1.5 text-xs font-semibold transition ${
                 isSelected
                   ? STAGE_PULSE_STYLES[stage]
-                  : "border-border bg-background text-muted-foreground hover:text-foreground"
+                  : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
               } ${isSaving ? "opacity-80" : ""}`}
             >
               <input

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Moon, Sun } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
   useEffect(() => {
@@ -23,14 +24,15 @@ export function ThemeToggle() {
   };
 
   return (
-    <button
-      type="button"
+    <Button
+      size="icon"
+      variant="outline"
       aria-label="Toggle theme"
       onClick={toggleTheme}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card text-card-foreground transition duration-150 hover:bg-muted"
+      className="text-card-foreground"
     >
       <Sun size={16} className="hidden dark:block" />
       <Moon size={16} className="block dark:hidden" />
-    </button>
+    </Button>
   );
 }

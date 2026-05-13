@@ -125,7 +125,7 @@ export default async function ProjectsPage({
     .join("") || "CR";
 
   return (
-    <section>
+    <section className="space-y-5">
       <YoutubeLinkResolver shouldResolve={shouldResolveLink} />
 
       <div className="relative left-1/2 w-screen -translate-x-1/2 border-t border-border">
@@ -135,7 +135,7 @@ export default async function ProjectsPage({
           bannerFallbackUrl={creatorBannerFallbackUrl}
         />
 
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-5 px-6 pb-5 pt-4 lg:px-10">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-5 px-6 pb-5 pt-4 lg:px-10">
           <div className="flex items-center gap-4">
             <CreatorAvatarImage
               creatorName={creatorName}
@@ -146,12 +146,17 @@ export default async function ProjectsPage({
 
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{creatorName}</h1>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {(creator?.youtubeChannels?.length ?? 0) > 0
+                  ? `${creator?.youtubeChannels?.length ?? 0} linked channels`
+                  : "Connect a channel to keep your pipeline in sync."}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto mt-4 w-full max-w-6xl">
+      <div className="mx-auto w-full max-w-7xl">
         <ProjectsPipelineBoard
           initialProjects={projectItems}
           channels={creator?.youtubeChannels ?? []}

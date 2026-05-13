@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   hasYoutubeProfile: boolean;
@@ -47,14 +48,15 @@ export function YoutubeProfileSyncButton({ hasYoutubeProfile }: Props) {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
+      <Button
         type="button"
+        variant="subtle"
+        size="sm"
         onClick={handleClick}
         disabled={status === "loading"}
-        className="rounded-sm border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
       >
         {label}
-      </button>
+      </Button>
       {message ? (
         <p className={`text-[11px] ${status === "error" ? "text-rose-400" : "text-muted-foreground"}`}>
           {message}
