@@ -2,27 +2,33 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, ListChecks, Zap } from "lucide-react";
 import { ActionPanel } from "@/components/ui/action-panel";
 import { Button } from "@/components/ui/button";
 
 interface ConsolidatorPhaseProps {
   projectId: string;
   shortlistedTitles: string[];
+  shortlistedHooks: string[];
+  savedScenes: string[];
   currentTitle: string | null;
+  currentHook: string | null;
 }
 interface GeneratorCategory {
   label: string;
   icon: React.ReactNode;
   items: string[];
-  fieldName: string;
+  fieldName: "title" | "hook" | "scenes";
   currentValue: string | null;
 }
 
 export function ConsolidatorPhase({
   projectId,
   shortlistedTitles,
+  shortlistedHooks,
+  savedScenes,
   currentTitle,
+  currentHook,
 }: ConsolidatorPhaseProps) {
   const router = useRouter();
   const [isApplying, setIsApplying] = useState<string | null>(null);
@@ -35,6 +41,20 @@ export function ConsolidatorPhase({
       fieldName: "title",
       currentValue: currentTitle,
     },
+    {
+      label: "Hook",
+      icon: <Zap className="h-4 w-4" />,
+      items: shortlistedHooks,
+      fieldName: "hook",
+      currentValue: currentHook,
+    },
+    {
+      label: "Scenes",
+      icon: <ListChecks className="h-4 w-4" />,
+      items: savedScenes,
+      fieldName: "scenes",
+      currentValue: null,
+    },
   ];
 
   const activeCategories = categories.filter((c) => c.items.length > 0);
@@ -43,18 +63,30 @@ export function ConsolidatorPhase({
     return null;
   }
 
-  const handleApplySelection = async (fieldName: string, value: string) => {
+  const handleApplySelection = async (fieldName: "title" | "hook" | "scenes", value: string) => {
+    if (fieldName === "scenes") {
+      return;
+    }
+
     setIsApplying(fieldName);
     setError(null);
 
     try {
+      const payload =
+        fieldName === "title"
+          ? { field: "title", value }
+          : {
+              field: "shortlistedHooks",
+              value: [
+                value,
+                ...shortlistedHooks.filter((hook) => hook !== value),
+              ],
+            };
+
       const response = await fetch(`/api/projects/${projectId}/selections`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          field: fieldName,
-          value: value,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -76,7 +108,7 @@ export function ConsolidatorPhase({
           Project Consolidator
         </h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Pick from your saved ideas and apply them as project details
+          Finalize your direction using saved titles, hooks, and scene prompts
         </p>
       </div>
 
@@ -95,6 +127,7 @@ export function ConsolidatorPhase({
             <div className="space-y-2 flex-1">
               {category.items.map((value) => {
                 const isCurrent = value === category.currentValue;
+                const isReadOnly = category.fieldName === "scenes";
 
                 return (
                   <div
@@ -104,19 +137,25 @@ export function ConsolidatorPhase({
                     <p className="text-sm text-foreground leading-relaxed flex-1 wrap-break-word">
                       {value}
                     </p>
-                    <Button
-                      onClick={() => handleApplySelection(category.fieldName, value)}
-                      disabled={isApplying === category.fieldName || isCurrent}
-                      variant={isCurrent ? "outline" : "subtle"}
-                      size="sm"
-                      className={`shrink-0 whitespace-nowrap ${
-                        isCurrent
-                          ? "text-foreground"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {isCurrent ? "Applied" : isApplying === category.fieldName ? "Applying..." : "Apply"}
-                    </Button>
+                    {isReadOnly ? (
+                      <span className="shrink-0 whitespace-nowrap rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground">
+                        Saved
+                      </span>
+                    ) : (
+                      <Button
+                        onClick={() => handleApplySelection(category.fieldName, value)}
+                        disabled={isApplying === category.fieldName || isCurrent}
+                        variant={isCurrent ? "outline" : "subtle"}
+                        size="sm"
+                        className={`shrink-0 whitespace-nowrap ${
+                          isCurrent
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {isCurrent ? "Applied" : isApplying === category.fieldName ? "Applying..." : "Apply"}
+                      </Button>
+                    )}
                   </div>
                 );
               })}

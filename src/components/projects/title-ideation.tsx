@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Lightbulb, Loader2 } from "lucide-react";
 import { ActionPanel } from "@/components/ui/action-panel";
 import { Button } from "@/components/ui/button";
@@ -12,24 +11,28 @@ interface TitleIdeationProps {
   concept: string;
   proposedTitles: string[] | null;
   shortlistedTitles: string[];
+  isExpanded?: boolean;
+  onActivate?: () => void;
+  onShortlistedTitlesChange?: (titles: string[]) => void;
 }
 
 export function TitleIdeation({
   projectId,
   concept,
   proposedTitles: initialProposedTitles,
-  shortlistedTitles: initialShortlistedTitles,
+  shortlistedTitles,
+  isExpanded,
+  onActivate,
+  onShortlistedTitlesChange,
 }: TitleIdeationProps) {
-  const router = useRouter();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [titles, setTitles] = useState<string[]>(
     initialProposedTitles || []
   );
-  const [shortlistedTitles, setShortlistedTitles] = useState<string[]>(
-    initialShortlistedTitles || []
-  );
   const [error, setError] = useState<string | null>(null);
+  const expanded = isExpanded ?? internalExpanded;
+  const hasResults = titles.length > 0;
 
   const getLiveConcept = () => {
     const conceptField = document.getElementById("concept") as HTMLTextAreaElement | null;
@@ -47,7 +50,8 @@ export function TitleIdeation({
 
     setIsLoading(true);
     setError(null);
-    setIsExpanded(true);
+    onActivate?.();
+    setInternalExpanded(true);
 
     try {
       const response = await fetch(
@@ -94,9 +98,8 @@ export function TitleIdeation({
         throw new Error("Failed to update shortlist");
       }
 
-      setShortlistedTitles(nextShortlist);
+      onShortlistedTitlesChange?.(nextShortlist);
       setError(null);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update shortlist");
     }
@@ -110,13 +113,7 @@ export function TitleIdeation({
           Title Ideation
         </h3>
         <Button
-          onClick={() => {
-            if (!isExpanded) {
-              handleGenerate();
-            } else {
-              setIsExpanded(false);
-            }
-          }}
+          onClick={handleGenerate}
           disabled={isLoading}
           variant="ghost"
           size="sm"
@@ -127,23 +124,21 @@ export function TitleIdeation({
               <Loader2 className="h-3 w-3 animate-spin" />
               Generating...
             </>
-          ) : isExpanded ? (
-            "Close"
           ) : (
             <>
-              Generate <span className="opacity-60">→</span>
+              {hasResults ? "Regenerate" : "Generate"} <span className="opacity-60">→</span>
             </>
           )}
         </Button>
       </div>
       <p className="mb-1 ml-6 text-xs text-muted-foreground">
-        4-5 compelling titles based on your concept
+        4 compelling titles based on your concept
       </p>
       <p className="mb-3 ml-6 text-xs text-muted-foreground/80">
         Type in &quot;Concept (Your Seed Idea)&quot; and click Generate.
       </p>
 
-      {isExpanded && (
+      {expanded && (
         <div className="ml-6 space-y-2 border-l border-border/70 pl-3">
           {isLoading ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -174,14 +169,6 @@ export function TitleIdeation({
                   </Button>
                 </div>
               ))}
-              <Button
-                onClick={handleGenerate}
-                disabled={isLoading}
-                variant="ghost"
-                size="sm"
-              >
-                Regenerate
-              </Button>
             </div>
           ) : (
             <EmptyState compact title="No suggestions yet" description="Generate once to see candidate titles." />

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { VideoProjectStage } from "@prisma/client";
-import { ProjectPulseStagePicker } from "@/components/projects/project-pulse-stage-picker";
+import { VIDEO_PROJECT_STAGE_LABELS, VIDEO_PROJECT_STAGES } from "@/lib/video-projects";
 import { FieldLabel, Input } from "@/components/ui/field";
 
 type Channel = {
@@ -39,6 +39,7 @@ export function ProjectPulseFields({
   initialYoutubeChannelId,
   channels,
 }: ProjectPulseFieldsProps) {
+  const [stage, setStage] = useState<VideoProjectStage>(initialStage);
   const [targetPublishAt, setTargetPublishAt] = useState(initialTargetPublishAt);
   const [youtubeChannelId, setYoutubeChannelId] = useState(initialYoutubeChannelId ?? "");
 
@@ -70,6 +71,7 @@ export function ProjectPulseFields({
         : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300";
 
   const lastSavedRef = useRef({
+    stage: initialStage,
     targetPublishAt: initialTargetPublishAt,
     youtubeChannelId: initialYoutubeChannelId ?? "",
   });
@@ -80,6 +82,7 @@ export function ProjectPulseFields({
     }
 
     const hasChanges =
+      stage !== lastSavedRef.current.stage ||
       targetPublishAt !== lastSavedRef.current.targetPublishAt ||
       youtubeChannelId !== lastSavedRef.current.youtubeChannelId;
 
@@ -89,14 +92,48 @@ export function ProjectPulseFields({
     }
 
     timeoutRef.current = setTimeout(async () => {
-      const updates: Array<{ field: string; value: string | null }> = [];
+      const updates: Array<Promise<void>> = [];
+
+      if (stage !== lastSavedRef.current.stage) {
+        updates.push(
+          fetch(`/api/projects/${projectId}/stage`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stage }),
+          }).then((response) => {
+            if (!response.ok) {
+              throw new Error("Failed to save");
+            }
+          }),
+        );
+      }
 
       if (targetPublishAt !== lastSavedRef.current.targetPublishAt) {
-        updates.push({ field: "targetPublishAt", value: targetPublishAt || null });
+        updates.push(
+          fetch(`/api/projects/${projectId}/selections`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ field: "targetPublishAt", value: targetPublishAt || null }),
+          }).then((response) => {
+            if (!response.ok) {
+              throw new Error("Failed to save");
+            }
+          }),
+        );
       }
 
       if (youtubeChannelId !== lastSavedRef.current.youtubeChannelId) {
-        updates.push({ field: "youtubeChannelId", value: youtubeChannelId || null });
+        updates.push(
+          fetch(`/api/projects/${projectId}/selections`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ field: "youtubeChannelId", value: youtubeChannelId || null }),
+          }).then((response) => {
+            if (!response.ok) {
+              throw new Error("Failed to save");
+            }
+          }),
+        );
       }
 
       if (updates.length === 0) {
@@ -107,21 +144,10 @@ export function ProjectPulseFields({
       setError(null);
 
       try {
-        await Promise.all(
-          updates.map((update) =>
-            fetch(`/api/projects/${projectId}/selections`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(update),
-            }).then((response) => {
-              if (!response.ok) {
-                throw new Error("Failed to save");
-              }
-            }),
-          ),
-        );
+        await Promise.all(updates);
 
         lastSavedRef.current = {
+          stage,
           targetPublishAt,
           youtubeChannelId,
         };
@@ -137,20 +163,29 @@ export function ProjectPulseFields({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [projectId, targetPublishAt, youtubeChannelId]);
+  }, [projectId, stage, targetPublishAt, youtubeChannelId]);
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
-          <ProjectPulseStagePicker
-            projectId={projectId}
-            initialStage={initialStage}
-          />
+          <FieldLabel htmlFor="stage">Stage</FieldLabel>
+          <select
+            id="stage"
+            value={stage}
+            onChange={(event) => setStage(event.target.value as VideoProjectStage)}
+            className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            {VIDEO_PROJECT_STAGES.map((item) => (
+              <option key={item} value={item}>
+                {VIDEO_PROJECT_STAGE_LABELS[item]}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
-          <div className="flex justify-between items-center">
+          <div className="flex items-center justify-between">
             <FieldLabel htmlFor="targetPublishAt">Target Publish Date</FieldLabel>
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${publishCountdownClass}`}>
               {publishCountdownLabel}
@@ -167,53 +202,20 @@ export function ProjectPulseFields({
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
-            YouTube Channel
-          </p>
-          <div className="mt-2 space-y-1.5 rounded-md border border-border bg-background/70 p-2">
-            <label className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition hover:bg-muted/40 hover:text-foreground">
-              <input
-                type="radio"
-                name="youtubeChannelId"
-                value=""
-                checked={!youtubeChannelId}
-                onChange={() => setYoutubeChannelId("")}
-                className="h-3.5 w-3.5"
-              />
-              <span>No channel assigned</span>
-            </label>
-            {channels.map((c) => {
-              const channelInitial = (c.title?.trim()?.[0] ?? "Y").toUpperCase();
-              return (
-                <label
-                  key={c.channelId}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-xs text-muted-foreground transition hover:bg-muted/40 hover:text-foreground"
-                >
-                  <input
-                    type="radio"
-                    name="youtubeChannelId"
-                    value={c.channelId}
-                    checked={youtubeChannelId === c.channelId}
-                    onChange={() => setYoutubeChannelId(c.channelId)}
-                    className="h-3.5 w-3.5"
-                  />
-                  <span className="inline-flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-[9px] font-semibold text-muted-foreground">
-                    {c.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={c.avatarUrl}
-                        alt={c.title ?? "YouTube channel avatar"}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span>{channelInitial}</span>
-                    )}
-                  </span>
-                  <span className="truncate">{c.title ?? c.channelId}</span>
-                </label>
-              );
-            })}
-          </div>
+          <FieldLabel htmlFor="youtubeChannelId">YouTube Channel</FieldLabel>
+          <select
+            id="youtubeChannelId"
+            value={youtubeChannelId}
+            onChange={(event) => setYoutubeChannelId(event.target.value)}
+            className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="">No channel assigned</option>
+            {channels.map((channel) => (
+              <option key={channel.channelId} value={channel.channelId}>
+                {channel.title ?? channel.channelId}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

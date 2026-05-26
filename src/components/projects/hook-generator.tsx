@@ -1,35 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Zap, Loader2 } from "lucide-react";
 import { ActionPanel } from "@/components/ui/action-panel";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Input } from "@/components/ui/field";
 
 interface HookGeneratorProps {
   projectId: string;
   concept: string;
   projectTitle: string | null;
   shortlistedHooks: string[];
+  isExpanded?: boolean;
+  onActivate?: () => void;
+  onShortlistedHooksChange?: (hooks: string[]) => void;
 }
 
 export function HookGenerator({
   projectId,
   concept,
   projectTitle,
-  shortlistedHooks: initialShortlistedHooks,
+  shortlistedHooks,
+  isExpanded,
+  onActivate,
+  onShortlistedHooksChange,
 }: HookGeneratorProps) {
-  const router = useRouter();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hooks, setHooks] = useState<string[]>([]);
-  const [shortlistedHooks, setShortlistedHooks] = useState<string[]>(
-    initialShortlistedHooks || []
-  );
-  const [manualHook, setManualHook] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const expanded = isExpanded ?? internalExpanded;
+  const hasResults = hooks.length > 0;
 
   const getLiveConcept = () => {
     const conceptField = document.getElementById("concept") as HTMLTextAreaElement | null;
@@ -47,7 +48,8 @@ export function HookGenerator({
 
     setIsLoading(true);
     setError(null);
-    setIsExpanded(true);
+    onActivate?.();
+    setInternalExpanded(true);
 
     try {
       const response = await fetch(
@@ -97,47 +99,10 @@ export function HookGenerator({
         throw new Error("Failed to update shortlist");
       }
 
-      setShortlistedHooks(nextShortlist);
+      onShortlistedHooksChange?.(nextShortlist);
       setError(null);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update shortlist");
-    }
-  };
-
-  const handleManualSave = async () => {
-    const value = manualHook.trim();
-    if (!value) {
-      return;
-    }
-
-    if (shortlistedHooks.includes(value)) {
-      setManualHook("");
-      return;
-    }
-
-    const nextShortlist = [...shortlistedHooks, value];
-
-    try {
-      const response = await fetch(`/api/projects/${projectId}/selections`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          field: "shortlistedHooks",
-          value: nextShortlist,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save hook");
-      }
-
-      setShortlistedHooks(nextShortlist);
-      setManualHook("");
-      setError(null);
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save hook");
     }
   };
 
@@ -149,13 +114,7 @@ export function HookGenerator({
           Hook Generator
         </h3>
         <Button
-          onClick={() => {
-            if (!isExpanded) {
-              handleGenerate();
-            } else {
-              setIsExpanded(false);
-            }
-          }}
+          onClick={handleGenerate}
           disabled={isLoading}
           variant="ghost"
           size="sm"
@@ -166,71 +125,20 @@ export function HookGenerator({
               <Loader2 className="h-3 w-3 animate-spin" />
               Generating...
             </>
-          ) : isExpanded ? (
-            "Close"
           ) : (
             <>
-              Generate <span className="opacity-60">→</span>
+              {hasResults ? "Regenerate" : "Generate"} <span className="opacity-60">→</span>
             </>
           )}
         </Button>
       </div>
-      <p className="mb-3 ml-6 text-xs text-muted-foreground">
+      <p className="mb-1 ml-6 text-xs text-muted-foreground">
         First 3 seconds that stops the scroll
       </p>
+      <p className="mb-3 ml-6 text-xs text-muted-foreground/80">Generate to review hooks and save what works.</p>
 
-      <div className="mb-4 ml-6 border-l border-border/70 pl-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-foreground">
-          Saved Hooks ({shortlistedHooks.length})
-        </p>
-
-        {shortlistedHooks.length === 0 ? (
-          <EmptyState compact title="No saved hooks yet" description="Save your best hooks to consolidate later." />
-        ) : (
-          <div className="space-y-2">
-            {shortlistedHooks.map((hook, idx) => (
-              <div
-                key={`${hook}-${idx}`}
-                className="flex items-start justify-between gap-2 border-b border-border/60 py-2 text-xs"
-              >
-                <span className="flex-1">{hook}</span>
-                <Button
-                  onClick={() => handleShortlistToggle(hook)}
-                  variant="subtle"
-                  size="sm"
-                >
-                  Remove
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-3 flex gap-2">
-          <Input
-            value={manualHook}
-            onChange={(event) => setManualHook(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                handleManualSave();
-              }
-            }}
-            placeholder="Write your own hook to save"
-            className="text-xs"
-          />
-          <Button
-            onClick={handleManualSave}
-            variant="subtle"
-            size="sm"
-          >
-            Save
-          </Button>
-        </div>
-      </div>
-
-      {isExpanded && (
-        <div className="ml-6 space-y-2 border-l border-border/70 pl-3">
+      {expanded && (
+        <div className="ml-6 space-y-3 border-l border-border/70 pl-3">
           {isLoading ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -260,18 +168,11 @@ export function HookGenerator({
                   </Button>
                 </div>
               ))}
-              <Button
-                onClick={handleGenerate}
-                disabled={isLoading}
-                variant="ghost"
-                size="sm"
-              >
-                Regenerate
-              </Button>
             </div>
           ) : (
             <EmptyState compact title="No hooks yet" description="Generate once to see opening line ideas." />
           )}
+
         </div>
       )}
     </ActionPanel>

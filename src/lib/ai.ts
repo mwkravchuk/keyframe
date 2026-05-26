@@ -129,6 +129,30 @@ function normalizeTitle(raw: string) {
     .trim();
 }
 
+function buildLocalFallbackTitles(concept: string, existingTitles?: string[]) {
+  const normalizedConcept = concept.replace(/\s+/g, " ").trim();
+  const seed = normalizedConcept
+    .split(/[.!?]/)[0]
+    ?.trim()
+    .slice(0, 72) || "This Idea";
+
+  const candidates = [
+    seed,
+    `${seed} in Real Life`,
+    `What This Idea Looks Like on Camera`,
+    `From Spark to Shoot Plan`,
+    `Turning This Idea Into a Video`,
+    `The First Cut of ${seed}`,
+  ];
+
+  return candidates
+    .map(normalizeTitle)
+    .filter(Boolean)
+    .filter((title, idx, arr) => arr.indexOf(title) === idx)
+    .filter((title) => !existingTitles?.includes(title))
+    .slice(0, 4);
+}
+
 function extractJsonObject(responseText: string) {
   const trimmed = responseText.trim();
   const normalized = trimmed
@@ -191,7 +215,7 @@ Keep values short and practical. Do not invent specifics that are not implied.`;
 }
 
 /**
- * Generate 5 compelling video titles based on the concept
+ * Generate 4 compelling video titles based on the concept
  */
 export async function generateTitles(
   options: GenerateTitlesOptions
@@ -202,7 +226,7 @@ export async function generateTitles(
 Generate concise, natural-sounding titles that feel human and specific.
 
 Hard rules:
-- Return 8 options (one per line)
+- Return 4 options (one per line)
 - No colons
 - No exclamation marks
 - No emoji
@@ -223,11 +247,22 @@ ${existingTitles && existingTitles.length > 0 ? `Previously generated (don't rep
 
 Generate title options:`;
 
-  const responseText = await runPrompt({
-    systemPrompt,
-    userPrompt,
-    maxTokens: 500,
-  });
+  let responseText = "";
+
+  try {
+    responseText = await runPrompt({
+      systemPrompt,
+      userPrompt,
+      maxTokens: 500,
+    });
+  } catch {
+    // Fallback to local deterministic titles so project flow does not hard-fail.
+    const localFallback = buildLocalFallbackTitles(concept, existingTitles);
+    if (localFallback.length > 0) {
+      return localFallback;
+    }
+    throw new Error("Title generation failed");
+  }
 
   const bannedPattern = /\b(funny|hilarious|comedic|quirks|laughs|mistakes|fail(?:s|ed|ing)?)\b/i;
 
@@ -243,31 +278,42 @@ Generate title options:`;
     })
     .filter((title: string, idx: number, arr: string[]) => arr.indexOf(title) === idx)
     .filter((title: string) => !existingTitles?.includes(title))
-    .slice(0, 5);
+    .slice(0, 4);
 
-  if (titles.length < 5) {
-    const fallbackPrompt = `${userPrompt}\n\nYou must follow the hard rules strictly. Give only clean, simple options.`;
-    const fallbackResponse = await runPrompt({
-      systemPrompt,
-      userPrompt: fallbackPrompt,
-      maxTokens: 400,
-    });
-
-    const fallbackTitles = fallbackResponse
-      .split("\n")
-      .map(normalizeTitle)
-      .filter((title: string) => {
-        if (!title) return false;
-        if (title.includes(":")) return false;
-        if (title.includes("!")) return false;
-        if (bannedPattern.test(title)) return false;
-        return true;
+  if (titles.length < 4) {
+    try {
+      const fallbackPrompt = `${userPrompt}\n\nYou must follow the hard rules strictly. Give only clean, simple options.`;
+      const fallbackResponse = await runPrompt({
+        systemPrompt,
+        userPrompt: fallbackPrompt,
+        maxTokens: 400,
       });
 
-    titles = [...titles, ...fallbackTitles]
+      const fallbackTitles = fallbackResponse
+        .split("\n")
+        .map(normalizeTitle)
+        .filter((title: string) => {
+          if (!title) return false;
+          if (title.includes(":")) return false;
+          if (title.includes("!")) return false;
+          if (bannedPattern.test(title)) return false;
+          return true;
+        });
+
+      titles = [...titles, ...fallbackTitles]
+        .filter((title: string, idx: number, arr: string[]) => arr.indexOf(title) === idx)
+        .filter((title: string) => !existingTitles?.includes(title))
+        .slice(0, 4);
+    } catch {
+      // If secondary model attempt fails, continue with current candidates and local fallback fill.
+    }
+  }
+
+  if (titles.length < 4) {
+    const localFallback = buildLocalFallbackTitles(concept, existingTitles);
+    titles = [...titles, ...localFallback]
       .filter((title: string, idx: number, arr: string[]) => arr.indexOf(title) === idx)
-      .filter((title: string) => !existingTitles?.includes(title))
-      .slice(0, 5);
+      .slice(0, 4);
   }
 
   return titles;
@@ -283,6 +329,7 @@ export async function generateHook(
 Your job is NOT to template-fill or use clichéd phrases. Your job is to understand the VIBE and emotional intent of the video, then craft hooks that feel like natural openings.
 
 Rules:
+- Return exactly 4 options
 - Each hook is 1-2 sentences max
 - Feels like a real person talking, not a YouTube formula
 - AVOID at all costs:
@@ -300,7 +347,7 @@ Rules:
 Example of BAD: ["Watch this hilarity ensue!", "You won't believe what happens next!"]
 Example of GOOD: ["I spent 3 months trying to fix this the wrong way", "Most people don't realize this about JavaScript"]
 
-Format: ["Hook option one", "Hook option two"]`;
+Format: ["Hook option one", "Hook option two", "Hook option three", "Hook option four"]`;
 
   const userPrompt = `Video Concept: ${concept}
 ${title ? `Title: ${title}` : ""}
@@ -314,7 +361,19 @@ Generate hook options that feel authentic to this creator's voice and angle:`;
     maxTokens: 300,
   });
 
-  const hooks = extractListItems(responseText).slice(0, 5);
+  let hooks = extractListItems(responseText).slice(0, 4);
+
+  if (hooks.length < 4) {
+    const fallbackResponse = await runPrompt({
+      systemPrompt,
+      userPrompt: `${userPrompt}\n\nReturn exactly 4 hook options as a JSON array only.`,
+      maxTokens: 300,
+    });
+
+    hooks = [...hooks, ...extractListItems(fallbackResponse)]
+      .filter((hook: string, idx: number, arr: string[]) => arr.indexOf(hook) === idx)
+      .slice(0, 4);
+  }
 
   if (hooks.length === 0) {
     throw new Error("No hooks returned from OpenAI");
@@ -333,7 +392,7 @@ Generate short "situation prompts" that remind a creator when to pull out the ca
 
 Rules:
 - Return valid JSON array only
-- 6 to 10 items
+- Return exactly 4 items
 - Each item is one simple line, 4 to 14 words
 - Focus on moments/situations, not camera jargon
 - No technical shot language like focal length, framing, aperture
@@ -355,7 +414,7 @@ Generate situation prompts for this creator.`;
   const prompts = extractListItems(responseText)
     .map((item) => item.replace(/\.$/, "").trim())
     .filter(Boolean)
-    .slice(0, 10);
+    .slice(0, 4);
 
   if (prompts.length === 0) {
     throw new Error("No situation prompts returned from OpenAI");

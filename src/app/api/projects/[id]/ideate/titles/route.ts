@@ -65,7 +65,12 @@ export async function POST(
   } catch (error) {
     console.error("Title generation error:", error);
     return Response.json(
-      { error: "Failed to generate titles" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate titles",
+      },
       { status: 500 }
     );
   }
