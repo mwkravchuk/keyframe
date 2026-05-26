@@ -5,6 +5,60 @@ import { authOptions } from "@/lib/auth";
 import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { prisma } from "@/lib/prisma";
 
+const UNTITLED_BASE = "Untitled";
+
+function getNextUntitledTitle(existingTitles: string[]) {
+  let sawBaseTitle = false;
+  let highestNumber = 1;
+
+  for (const rawTitle of existingTitles) {
+    const trimmed = rawTitle.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const match = trimmed.match(/^Untitled(?:\s+(\d+))?$/i);
+    if (!match) {
+      continue;
+    }
+
+    if (!match[1]) {
+      sawBaseTitle = true;
+      continue;
+    }
+
+    const parsed = Number.parseInt(match[1], 10);
+    if (!Number.isNaN(parsed)) {
+      highestNumber = Math.max(highestNumber, parsed);
+    }
+  }
+
+  if (!sawBaseTitle && highestNumber === 1) {
+    return UNTITLED_BASE;
+  }
+
+  return `${UNTITLED_BASE} ${highestNumber + 1}`;
+}
+
+async function resolveProjectTitle(userId: string, providedTitle: string) {
+  if (providedTitle) {
+    return providedTitle;
+  }
+
+  const untitledProjects = await prisma.videoProject.findMany({
+    where: {
+      userId,
+      title: {
+        startsWith: UNTITLED_BASE,
+        mode: "insensitive",
+      },
+    },
+    select: { title: true },
+  });
+
+  return getNextUntitledTitle(untitledProjects.map((project) => project.title));
+}
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   const userId = await getUserIdWithDevBypass(session?.user?.id);
@@ -29,15 +83,12 @@ export async function POST(request: Request) {
   const rawIdea = (body.rawIdea ?? "").trim() || null;
   const briefFormat = (body.briefFormat ?? "").trim() || null;
   const briefData = (body.briefData ?? "").trim() || null;
-
-  if (!title) {
-    return NextResponse.json({ error: "Title is required" }, { status: 400 });
-  }
+  const resolvedTitle = await resolveProjectTitle(userId, title);
 
   const project = await prisma.videoProject.create({
     data: {
       userId,
-      title,
+      title: resolvedTitle,
       concept: concept || null,
       rawIdea,
       briefFormat,
