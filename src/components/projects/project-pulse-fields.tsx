@@ -5,6 +5,15 @@ import type { VideoProjectStage } from "@prisma/client";
 import { VIDEO_PROJECT_STAGE_LABELS, VIDEO_PROJECT_STAGES } from "@/lib/video-projects";
 import { FieldLabel, Input } from "@/components/ui/field";
 
+const STAGE_CHIP_STYLES: Record<VideoProjectStage, string> = {
+  IDEA: "border-sky-400/35 bg-sky-400/14 text-sky-700 dark:text-sky-300",
+  DRAFTING: "border-violet-400/35 bg-violet-400/14 text-violet-700 dark:text-violet-300",
+  RECORDING: "border-blue-400/35 bg-blue-400/14 text-blue-700 dark:text-blue-300",
+  EDITING: "border-indigo-400/35 bg-indigo-400/14 text-indigo-700 dark:text-indigo-300",
+  PUBLISHED: "border-emerald-400/35 bg-emerald-400/14 text-emerald-700 dark:text-emerald-300",
+  REVIEW: "border-amber-400/35 bg-amber-400/14 text-amber-700 dark:text-amber-300",
+};
+
 type Channel = {
   channelId: string;
   title: string | null;
@@ -169,19 +178,25 @@ export function ProjectPulseFields({
     <>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div>
-          <FieldLabel htmlFor="stage">Stage</FieldLabel>
-          <select
-            id="stage"
-            value={stage}
-            onChange={(event) => setStage(event.target.value as VideoProjectStage)}
-            className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
+          <p className="text-xs font-semibold uppercase tracking-wide text-foreground">Stage</p>
+          <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Stage">
             {VIDEO_PROJECT_STAGES.map((item) => (
-              <option key={item} value={item}>
+              <button
+                key={item}
+                type="button"
+                role="radio"
+                aria-checked={stage === item}
+                onClick={() => setStage(item)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  stage === item
+                    ? STAGE_CHIP_STYLES[item]
+                    : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
                 {VIDEO_PROJECT_STAGE_LABELS[item]}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
         <div>

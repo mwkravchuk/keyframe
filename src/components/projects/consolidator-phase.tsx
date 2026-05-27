@@ -102,12 +102,9 @@ export function ConsolidatorPhase({
   };
 
   return (
-    <ActionPanel className="mt-4">
+    <ActionPanel className="mt-2">
       <div className="mb-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
-          Project Consolidator
-        </h2>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Finalize your direction using saved titles, hooks, and scene prompts
         </p>
       </div>

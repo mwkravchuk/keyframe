@@ -39,49 +39,49 @@ export function ProjectGeneratorStack({
   const derivedCurrentHook = shortlistedHooksState[0] ?? currentHook;
 
   return (
-    <>
-      <section className="space-y-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Generate</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">Build packaging options.</h2>
+    <section className="space-y-12 lg:space-y-14">
+      <div className="space-y-6">
+        <h2 className="text-3xl font-semibold tracking-tight text-foreground">2. Generate</h2>
+
+        <div className="divide-y divide-border/70">
+          <div className="py-3 first:pt-0">
+            <TitleIdeation
+              projectId={projectId}
+              concept={concept}
+              proposedTitles={proposedTitles}
+              shortlistedTitles={shortlistedTitlesState}
+              isExpanded={activeGenerator === "title"}
+              onActivate={() => setActiveGenerator("title")}
+              onShortlistedTitlesChange={setShortlistedTitlesState}
+            />
+          </div>
+
+          <div className="py-3">
+            <HookGenerator
+              projectId={projectId}
+              concept={concept}
+              projectTitle={projectTitle}
+              shortlistedHooks={shortlistedHooksState}
+              isExpanded={activeGenerator === "hook"}
+              onActivate={() => setActiveGenerator("hook")}
+              onShortlistedHooksChange={setShortlistedHooksState}
+            />
+          </div>
+
+          <div className="py-3 last:pb-0">
+            <ScenePlannerGenerator
+              projectId={projectId}
+              initialValue={savedScenesState.map((item) => `- [ ] ${item}`).join("\n")}
+              isExpanded={activeGenerator === "scene"}
+              onActivate={() => setActiveGenerator("scene")}
+              onSavedScenesChange={setSavedScenesState}
+            />
+          </div>
         </div>
+      </div>
 
-        <div className="space-y-5">
-          <TitleIdeation
-            projectId={projectId}
-            concept={concept}
-            proposedTitles={proposedTitles}
-            shortlistedTitles={shortlistedTitlesState}
-            isExpanded={activeGenerator === "title"}
-            onActivate={() => setActiveGenerator("title")}
-            onShortlistedTitlesChange={setShortlistedTitlesState}
-          />
-
-          <HookGenerator
-            projectId={projectId}
-            concept={concept}
-            projectTitle={projectTitle}
-            shortlistedHooks={shortlistedHooksState}
-            isExpanded={activeGenerator === "hook"}
-            onActivate={() => setActiveGenerator("hook")}
-            onShortlistedHooksChange={setShortlistedHooksState}
-          />
-
-          <ScenePlannerGenerator
-            projectId={projectId}
-            initialValue={savedScenesState.map((item) => `- [ ] ${item}`).join("\n")}
-            isExpanded={activeGenerator === "scene"}
-            onActivate={() => setActiveGenerator("scene")}
-            onSavedScenesChange={setSavedScenesState}
-          />
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Consolidate</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">Pick what you are shipping.</h2>
-        </div>
+      <div className="space-y-6 pt-6">
+        <h2 className="text-3xl font-semibold tracking-tight text-foreground">3. Consolidate</h2>
 
         <ConsolidatorPhase
           projectId={projectId}
@@ -91,7 +91,7 @@ export function ProjectGeneratorStack({
           currentTitle={currentTitle}
           currentHook={derivedCurrentHook}
         />
-      </section>
-    </>
+      </div>
+    </section>
   );
 }

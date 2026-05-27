@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Pencil } from "lucide-react";
 
 interface ProjectTitleInlineProps {
   projectId: string;
@@ -76,15 +77,15 @@ export function ProjectTitleInline({ projectId, initialTitle }: ProjectTitleInli
         <button
           type="button"
           onClick={() => setIsEditing(true)}
-          className="w-full cursor-pointer text-left text-2xl font-semibold tracking-tight transition hover:opacity-80"
+          className="group -mx-1 flex w-full cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-left text-2xl font-semibold tracking-tight transition hover:bg-muted/55"
+          aria-label="Edit project title"
         >
-          {title || "Untitled Project"}
+          <span className="truncate">{title || "Untitled Project"}</span>
+          <Pencil size={15} className="shrink-0 text-muted-foreground opacity-55 transition group-hover:opacity-100" />
         </button>
       )}
 
-      <div className="mt-1 h-4 text-[11px] text-muted-foreground">
-        {isSaving ? "Saving title..." : error ?? "Click title to edit"}
-      </div>
+      {error ? <div className="mt-1 text-[11px] text-red-500">{error}</div> : null}
     </div>
   );
 }

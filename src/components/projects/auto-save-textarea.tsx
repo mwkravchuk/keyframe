@@ -12,6 +12,7 @@ interface AutoSaveTextareaProps {
   placeholder: string;
   rows: number;
   variant?: "light" | "dark";
+  hideLabel?: boolean;
 }
 
 export function AutoSaveTextarea({
@@ -22,10 +23,9 @@ export function AutoSaveTextarea({
   placeholder,
   rows,
   variant = "light",
+  hideLabel = false,
 }: AutoSaveTextareaProps) {
   const [value, setValue] = useState(initialValue);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedValueRef = useRef(initialValue);
@@ -36,15 +36,11 @@ export function AutoSaveTextarea({
     }
 
     if (value === lastSavedValueRef.current) {
-      setSaved(true);
       setError(null);
       return;
     }
 
-    setSaved(false);
-
     timeoutRef.current = setTimeout(async () => {
-      setIsSaving(true);
       setError(null);
 
       try {
@@ -62,11 +58,8 @@ export function AutoSaveTextarea({
         }
 
         lastSavedValueRef.current = value;
-        setSaved(true);
       } catch {
         setError("Failed to save");
-      } finally {
-        setIsSaving(false);
       }
     }, 700);
 
@@ -82,16 +75,14 @@ export function AutoSaveTextarea({
       <div className="flex items-center justify-between">
         <label
           htmlFor={field}
-          className={`text-xs font-semibold uppercase tracking-wide ${
+          className={`${hideLabel ? "sr-only" : "text-xs font-semibold uppercase tracking-wide"} ${
             variant === "dark" ? "text-zinc-300" : "text-foreground"
           }`}
         >
           {label}
         </label>
-        <span className={`text-[11px] ${variant === "dark" ? "text-zinc-500" : "text-muted-foreground/70"}`}>
-          {isSaving ? "Saving..." : error ? error : saved ? "Saved" : "Unsaved"}
-        </span>
       </div>
+      {error ? <div className="mt-1 text-[11px] text-red-500">{error}</div> : null}
       <Textarea
         id={field}
         name={field}

@@ -7,12 +7,12 @@ interface NoteScratchpadProps {
   projectId: string;
   initialNotes: string;
   variant?: "light" | "dark";
+  rows?: number;
 }
 
-export function NoteScratchpad({ projectId, initialNotes, variant = "light" }: NoteScratchpadProps) {
+export function NoteScratchpad({ projectId, initialNotes, variant = "light", rows = 10 }: NoteScratchpadProps) {
   const [notes, setNotes] = useState(initialNotes);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -21,18 +21,13 @@ export function NoteScratchpad({ projectId, initialNotes, variant = "light" }: N
       clearTimeout(timeoutRef.current);
     }
 
-    // If notes haven't changed from initial, no need to save
     if (notes === initialNotes) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSaved(true);
+      setError(null);
       return;
     }
 
-    setSaved(false);
-
-    // Debounce: wait 1s after user stops typing before saving
     timeoutRef.current = setTimeout(async () => {
-      setIsSaving(true);
+      setError(null);
       try {
         const response = await fetch(`/api/projects/${projectId}/selections`, {
           method: "PATCH",
@@ -46,13 +41,8 @@ export function NoteScratchpad({ projectId, initialNotes, variant = "light" }: N
         if (!response.ok) {
           throw new Error("Failed to save notes");
         }
-
-        setSaved(true);
-      } catch (error) {
-        console.error("Notes save error:", error);
-        // In case of error, still allow user to continue typing
-      } finally {
-        setIsSaving(false);
+      } catch {
+        setError("Failed to save notes");
       }
     }, 1000);
 
@@ -65,29 +55,21 @@ export function NoteScratchpad({ projectId, initialNotes, variant = "light" }: N
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex items-center justify-between">
         <label htmlFor="notes" className={`text-xs font-semibold uppercase tracking-wide ${
           variant === "dark" ? "text-zinc-200" : "text-foreground"
         }`}>
           Notes & Scratch Ideas
         </label>
-        <span className={`text-xs transition ${
-          isSaving 
-            ? variant === "dark" ? "text-zinc-400" : "text-muted-foreground"
-            : saved 
-              ? variant === "dark" ? "text-zinc-500" : "text-muted-foreground/50"
-              : variant === "dark" ? "text-amber-400" : "text-amber-600"
-        }`}>
-          {isSaving ? "Saving..." : saved ? "Saved" : "Unsaved"}
-        </span>
       </div>
+      {error ? <div className="mb-1 text-[11px] text-red-500">{error}</div> : null}
       <Textarea
         id="notes"
         name="notes"
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Quick thoughts, reference links, segment ideas, anything that helps you remember the vision."
-        rows={10}
+        rows={rows}
         className={`mt-2 h-full w-full ${
           variant === "dark"
             ? "border border-zinc-700 bg-zinc-900 text-zinc-100 placeholder:text-zinc-500"

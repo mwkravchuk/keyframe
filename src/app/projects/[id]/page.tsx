@@ -103,56 +103,59 @@ export default async function ProjectDetailPage({
   const currentHook = shortlistedHooks[0] ?? null;
 
   return (
-    <div className="kf-project-detail space-y-6">
-      <section className="space-y-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Manage</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">Project setup and details.</h2>
-        </div>
+    <div className="kf-project-detail mx-auto w-full max-w-6xl space-y-16 lg:space-y-20">
+      <Link
+        href="/projects"
+        className="inline-flex items-center rounded-md border border-border/70 px-2.5 py-1.5 text-xs text-muted-foreground transition hover:border-border hover:text-foreground"
+      >
+        ← Back to board
+      </Link>
 
+      <section>
         <ActionPanel>
-          <Link
-            href="/projects"
-            className="mb-4 inline-block text-xs text-muted-foreground transition hover:text-foreground"
-          >
-            ← Back to board
-          </Link>
-
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
-            <div className="space-y-5">
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.55fr)_minmax(20rem,1fr)]">
+            <div className="space-y-6">
               <ProjectTitleInline
                 projectId={project.id}
                 initialTitle={project.title}
               />
 
+              <ProjectPulseFields
+                projectId={project.id}
+                initialStage={project.stage}
+                initialTargetPublishAt={targetPublishAt}
+                initialYoutubeChannelId={project.youtubeChannelId}
+                channels={channels}
+              />
+            </div>
+
+            <aside className="border-t border-border/70 pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
               <NoteScratchpad
                 projectId={project.id}
                 initialNotes={project.notes ?? ""}
                 variant="light"
+                rows={7}
               />
-            </div>
-
-            <ProjectPulseFields
-              projectId={project.id}
-              initialStage={project.stage}
-              initialTargetPublishAt={targetPublishAt}
-              initialYoutubeChannelId={project.youtubeChannelId}
-              channels={channels}
-            />
+            </aside>
           </div>
         </ActionPanel>
       </section>
 
-      <main className="space-y-5">
-        <AutoSaveTextarea
-          projectId={project.id}
-          field="concept"
-          label="Concept (Your Seed Idea)"
-          initialValue={project.concept ?? ""}
-          placeholder="Write out your raw idea. Vagueness is fine and we can refine it together."
-          rows={2}
-          variant="light"
-        />
+      <main className="space-y-12 lg:space-y-14">
+        <section className="space-y-7">
+          <h2 className="text-3xl font-semibold tracking-tight text-foreground">1. Concept</h2>
+
+          <AutoSaveTextarea
+            projectId={project.id}
+            field="concept"
+            label="Concept (Your Seed Idea)"
+            initialValue={project.concept ?? ""}
+            placeholder="Write out your raw idea. Vagueness is fine and we can refine it together."
+            rows={4}
+            variant="light"
+            hideLabel
+          />
+        </section>
 
         <ProjectGeneratorStack
           projectId={project.id}

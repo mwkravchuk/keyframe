@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ListChecks, Loader2 } from "lucide-react";
+import { Heart, ListChecks, Loader2 } from "lucide-react";
 import { ActionPanel } from "@/components/ui/action-panel";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -53,6 +53,9 @@ export function ScenePlannerGenerator({
   const [error, setError] = useState<string | null>(null);
   const expanded = isExpanded ?? internalExpanded;
   const hasResults = suggestions.length > 0;
+  const generateButtonClass = `ml-auto flex items-center gap-1 border border-emerald-800 bg-emerald-700 text-emerald-50 hover:bg-emerald-800 dark:border-emerald-300/40 dark:bg-emerald-300/12 dark:text-emerald-100 ${
+    isGenerating ? "animate-pulse shadow-[0_0_0_1px_rgba(4,120,87,0.5)] dark:shadow-[0_0_0_1px_rgba(167,243,208,0.3)]" : ""
+  }`;
 
   const persistSavedScenes = async (nextScenes: string[]) => {
     setIsSaving(true);
@@ -140,14 +143,14 @@ export function ScenePlannerGenerator({
             void handleGenerate();
           }}
           disabled={isGenerating || isSaving}
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="ml-auto flex items-center gap-1"
+          className={generateButtonClass}
         >
           {isGenerating ? (
             <>
               <Loader2 className="h-3 w-3 animate-spin" />
-              Generating...
+              Generating
             </>
           ) : (
             <>
@@ -168,26 +171,46 @@ export function ScenePlannerGenerator({
           {suggestions.length === 0 && !isGenerating ? (
             <EmptyState compact title="No scene prompts yet" description="Generate once to see scene planning ideas." />
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-border/60">
               {suggestions.map((text, idx) => {
                 const alreadySaved = savedScenes.some((item) => item.toLowerCase() === text.toLowerCase());
 
                 return (
                   <div
                     key={`${text}-${idx}`}
-                    className="flex items-start justify-between gap-2 border-b border-border/60 py-2 text-xs"
+                    className="flex items-start justify-between gap-2 py-2 text-xs"
                   >
-                    <span className="flex-1">{text}</span>
-                    <Button
+                    <button
+                      type="button"
                       onClick={() => {
                         void handleSaveSuggestion(text);
                       }}
-                      variant={alreadySaved ? "outline" : "subtle"}
-                      size="sm"
-                      disabled={isSaving}
+                      disabled={alreadySaved || isSaving}
+                      className={`flex-1 text-left transition ${
+                        alreadySaved
+                          ? "cursor-default text-muted-foreground"
+                          : "cursor-pointer hover:text-foreground hover:underline"
+                      }`}
                     >
-                      {alreadySaved ? "Saved" : "Save"}
-                    </Button>
+                      {text}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleSaveSuggestion(text);
+                      }}
+                      disabled={alreadySaved || isSaving}
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded-sm transition ${
+                        alreadySaved
+                          ? "cursor-default text-rose-500 dark:text-rose-400"
+                          : "text-muted-foreground hover:text-rose-500"
+                      }`}
+                      aria-label={alreadySaved ? "Saved scene prompt" : "Save scene prompt"}
+                    >
+                      <Heart
+                        className={alreadySaved ? "h-3.5 w-3.5 fill-current" : "h-3.5 w-3.5"}
+                      />
+                    </button>
                   </div>
                 );
               })}

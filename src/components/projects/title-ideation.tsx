@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Lightbulb, Loader2 } from "lucide-react";
+import { Heart, Lightbulb, Loader2 } from "lucide-react";
 import { ActionPanel } from "@/components/ui/action-panel";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -33,6 +33,9 @@ export function TitleIdeation({
   const [error, setError] = useState<string | null>(null);
   const expanded = isExpanded ?? internalExpanded;
   const hasResults = titles.length > 0;
+  const generateButtonClass = `ml-auto flex items-center gap-1 border border-emerald-800 bg-emerald-700 text-emerald-50 hover:bg-emerald-800 dark:border-emerald-300/40 dark:bg-emerald-300/12 dark:text-emerald-100 ${
+    isLoading ? "animate-pulse shadow-[0_0_0_1px_rgba(4,120,87,0.5)] dark:shadow-[0_0_0_1px_rgba(167,243,208,0.3)]" : ""
+  }`;
 
   const getLiveConcept = () => {
     const conceptField = document.getElementById("concept") as HTMLTextAreaElement | null;
@@ -115,14 +118,14 @@ export function TitleIdeation({
         <Button
           onClick={handleGenerate}
           disabled={isLoading}
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="ml-auto flex items-center gap-1"
+          className={generateButtonClass}
         >
           {isLoading ? (
             <>
               <Loader2 className="h-3 w-3 animate-spin" />
-              Generating...
+              Generating
             </>
           ) : (
             <>
@@ -154,19 +157,32 @@ export function TitleIdeation({
                   key={idx}
                   className="flex items-start justify-between gap-2 border-b border-border/60 py-2 text-xs"
                 >
-                  <span className="flex-1">{title}</span>
-                  <Button
-                    onClick={() => handleShortlistToggle(title)}
-                    variant={shortlistedTitles.includes(title) ? "outline" : "subtle"}
-                    size="sm"
-                    className={`whitespace-nowrap ${
-                      shortlistedTitles.includes(title)
-                        ? "text-foreground"
-                        : "text-muted-foreground"
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleShortlistToggle(title);
+                    }}
+                    className="flex-1 cursor-pointer text-left transition hover:text-foreground hover:underline"
                   >
-                    {shortlistedTitles.includes(title) ? "Saved" : "Save"}
-                  </Button>
+                    {title}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleShortlistToggle(title);
+                    }}
+                    className={`inline-flex h-6 w-6 items-center justify-center rounded-sm transition ${
+                      shortlistedTitles.includes(title)
+                        ? "text-rose-500 hover:text-rose-600 dark:text-rose-400"
+                        : "text-muted-foreground hover:text-rose-500"
+                    }`}
+                    aria-pressed={shortlistedTitles.includes(title)}
+                    aria-label={shortlistedTitles.includes(title) ? "Unsave title" : "Save title"}
+                  >
+                    <Heart
+                      className={shortlistedTitles.includes(title) ? "h-3.5 w-3.5 fill-current" : "h-3.5 w-3.5"}
+                    />
+                  </button>
                 </div>
               ))}
             </div>
