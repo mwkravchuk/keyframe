@@ -37,6 +37,7 @@ export async function PATCH(
       "nextStep",
       "targetPublishAt",
       "youtubeChannelId",
+      "youtubeVideoUrl",
     ];
 
     if (!validFields.includes(field)) {
@@ -101,6 +102,9 @@ export async function PATCH(
       }
     } else if (field === "youtubeChannelId") {
       updateData[field] = value == null || value === "" ? null : String(value);
+    } else if (field === "youtubeVideoUrl") {
+      const normalized = value == null ? "" : String(value).trim();
+      updateData[field] = normalized.length > 0 ? normalized : null;
     } else {
       updateData[field] = value == null ? null : String(value);
     }

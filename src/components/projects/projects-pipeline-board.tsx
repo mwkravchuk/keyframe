@@ -27,6 +27,7 @@ import {
   VIDEO_PROJECT_STAGE_LABELS,
   type VideoProjectStage,
 } from "@/lib/video-projects";
+import { getYoutubeThumbnailUrl } from "@/lib/youtube-video";
 import { ActionPanel } from "@/components/ui/action-panel";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -41,6 +42,7 @@ type ProjectItem = {
   nextStep: string | null;
   stage: VideoProjectStage;
   youtubeChannelId: string | null;
+  youtubeVideoUrl: string | null;
   youtubeChannelTitle: string | null;
 };
 
@@ -260,6 +262,7 @@ function ProjectCard({
   const channelAvatarUrl = channel?.avatarUrl ?? null;
   const channelInitial = (channel?.title?.trim()?.[0] ?? "Y").toUpperCase();
   const summary = project.notes || project.nextStep || project.concept || "No context added yet.";
+  const thumbnailUrl = getYoutubeThumbnailUrl(project.youtubeVideoUrl);
   const channelBadge = project.youtubeChannelId ? (
     <span
       className="inline-flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-[9px] font-semibold text-muted-foreground"
@@ -297,7 +300,13 @@ function ProjectCard({
       {kind === "idea" ? (
         <IdeaCard title={project.title} dragging={isDragging} />
       ) : (
-        <VideoCard title={project.title} summary={summary} dragging={isDragging} channel={channelBadge} />
+        <VideoCard
+          title={project.title}
+          summary={summary}
+          dragging={isDragging}
+          channel={channelBadge}
+          thumbnailUrl={thumbnailUrl}
+        />
       )}
     </div>
   );
@@ -305,10 +314,16 @@ function ProjectCard({
 
 function ProjectCardOverlay({ project }: { project: ProjectItem }) {
   const summary = project.notes || project.nextStep || project.concept || "No context added yet.";
+  const thumbnailUrl = getYoutubeThumbnailUrl(project.youtubeVideoUrl);
 
   return (
     <div className="w-56 cursor-grabbing">
-      <VideoCard title={project.title} summary={summary} className="border-accent shadow-panel" />
+      <VideoCard
+        title={project.title}
+        summary={summary}
+        className="border-accent shadow-panel"
+        thumbnailUrl={thumbnailUrl}
+      />
     </div>
   );
 }
@@ -322,6 +337,10 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
   const [channelActionError, setChannelActionError] = useState<string | null>(null);
   const [isSwitchingChannel, setIsSwitchingChannel] = useState(false);
   const [isConnectingChannel, setIsConnectingChannel] = useState(false);
+  const [importCursor, setImportCursor] = useState<string | null>(null);
+  const [isImportingRecent, setIsImportingRecent] = useState(false);
+  const [isImportingOlder, setIsImportingOlder] = useState(false);
+  const [importFeedback, setImportFeedback] = useState<string | null>(null);
   const activeChannelId = useMemo(
     () => channels.find((c) => c.isActive)?.channelId ?? channels[0]?.channelId ?? null,
     [channels],
@@ -472,6 +491,8 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
       }
 
       setChannelScope("active");
+      setImportCursor(null);
+      setImportFeedback(null);
       channelDetailsRef.current?.removeAttribute("open");
       router.refresh();
     } catch (error) {
@@ -512,6 +533,64 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
     } catch (error) {
       setChannelActionError(error instanceof Error ? error.message : "Failed to connect channel.");
       setIsConnectingChannel(false);
+    }
+  }
+
+  async function handleImportYoutubeVideos(mode: "recent" | "older") {
+    if (!activeChannelId) {
+      setImportFeedback("Choose an active channel first.");
+      return;
+    }
+
+    if (mode === "older" && !importCursor) {
+      return;
+    }
+
+    if (mode === "recent") {
+      setIsImportingRecent(true);
+    } else {
+      setIsImportingOlder(true);
+    }
+
+    setImportFeedback(null);
+
+    try {
+      const response = await fetch("/api/projects/import-youtube", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          channelId: activeChannelId,
+          limit: 12,
+          pageToken: mode === "older" ? importCursor : null,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        error?: string;
+        createdCount?: number;
+        skippedCount?: number;
+        nextPageToken?: string | null;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to import YouTube videos.");
+      }
+
+      const createdCount = data.createdCount ?? 0;
+      const skippedCount = data.skippedCount ?? 0;
+      setImportCursor(data.nextPageToken ?? null);
+      setImportFeedback(`Imported ${createdCount} project(s). Skipped ${skippedCount} already linked video(s).`);
+      router.refresh();
+    } catch (error) {
+      setImportFeedback(error instanceof Error ? error.message : "Failed to import YouTube videos.");
+    } finally {
+      if (mode === "recent") {
+        setIsImportingRecent(false);
+      } else {
+        setIsImportingOlder(false);
+      }
     }
   }
 
@@ -615,6 +694,34 @@ export function ProjectsPipelineBoard({ initialProjects, channels, createProject
         <IdeasSection ideas={ideas} channels={channels} onCreate={handleCreateIdea} />
 
         <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void handleImportYoutubeVideos("recent");
+                }}
+                disabled={!activeChannelId || isImportingRecent || isImportingOlder}
+                className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground cursor-pointer active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isImportingRecent ? "Importing..." : "Import recent videos"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleImportYoutubeVideos("older");
+                }}
+                disabled={!activeChannelId || !importCursor || isImportingRecent || isImportingOlder}
+                className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground cursor-pointer active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isImportingOlder ? "Importing older..." : "Import older batch"}
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {importFeedback ?? "Recent-first import keeps things fast. Use older batch for deeper history."}
+            </p>
+          </div>
+
           <Link
             href="/"
             className="rounded-md border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"

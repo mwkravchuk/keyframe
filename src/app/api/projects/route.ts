@@ -72,6 +72,7 @@ export async function POST(request: Request) {
     concept?: string;
     notes?: string;
     youtubeChannelId?: string;
+    youtubeVideoUrl?: string;
     rawIdea?: string;
     briefFormat?: string;
     briefData?: string;
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
   const concept = (body.concept ?? "").trim();
   const notes = (body.notes ?? "").trim();
   const youtubeChannelId = (body.youtubeChannelId ?? "").trim() || null;
+  const youtubeVideoUrl = (body.youtubeVideoUrl ?? "").trim() || null;
   const rawIdea = (body.rawIdea ?? "").trim() || null;
   const briefFormat = (body.briefFormat ?? "").trim() || null;
   const briefData = (body.briefData ?? "").trim() || null;
@@ -96,6 +98,7 @@ export async function POST(request: Request) {
       notes: notes || null,
       stage: VideoProjectStage.IDEA,
       youtubeChannelId,
+      youtubeVideoUrl,
     },
     select: {
       id: true,
@@ -104,7 +107,8 @@ export async function POST(request: Request) {
       notes: true,
       nextStep: true,
       stage: true,
-        youtubeChannelId: true,
+      youtubeChannelId: true,
+      youtubeVideoUrl: true,
     },
   });
 

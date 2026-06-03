@@ -52,11 +52,31 @@ type VideoCardProps = {
   dragging?: boolean;
   className?: string;
   channel?: ReactNode;
+  thumbnailUrl?: string | null;
 };
 
-export function VideoCard({ title, summary, dragging = false, className, channel }: VideoCardProps) {
+export function VideoCard({
+  title,
+  summary,
+  dragging = false,
+  className,
+  channel,
+  thumbnailUrl,
+}: VideoCardProps) {
   return (
     <CardFrame dragging={dragging} className={className}>
+      {thumbnailUrl ? (
+        <div className="mb-2 overflow-hidden rounded-sm border border-border/70 bg-muted/20">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={thumbnailUrl}
+            alt="Project video thumbnail"
+            className="h-20 w-full object-cover"
+            loading="lazy"
+          />
+        </div>
+      ) : null}
+
       <div className="flex items-start justify-between gap-2">
         <p className="line-clamp-2 text-[12px] font-medium leading-snug text-foreground">{title}</p>
         <div className="flex items-center gap-1.5">

@@ -6,6 +6,11 @@ type GoogleTokenResponse = {
   refresh_token?: string;
 };
 
+type GoogleTokenErrorResponse = {
+  error?: string;
+  error_description?: string;
+};
+
 type YoutubeChannelsResponse = {
   items?: Array<{
     id?: string;
@@ -19,6 +24,29 @@ type YoutubeChannelsResponse = {
       };
     };
   }>;
+};
+
+type YoutubeSearchResponse = {
+  nextPageToken?: string;
+  items?: Array<{
+    id?: {
+      videoId?: string;
+    };
+    snippet?: {
+      title?: string;
+      publishedAt?: string;
+      thumbnails?: Record<string, { url?: string }>;
+      channelId?: string;
+    };
+  }>;
+};
+
+export type YoutubeVideoSummary = {
+  videoId: string;
+  title: string;
+  publishedAt: string | null;
+  thumbnailUrl: string | null;
+  url: string;
 };
 
 type YoutubeChannelProfile = {
@@ -53,6 +81,12 @@ export type YoutubeSyncResult =
 export type YoutubeSetActiveResult =
   | { status: "ok"; profile: YoutubeChannelProfile }
   | { status: "missing-channel" };
+
+export type YoutubeListVideosResult =
+  | { status: "ok"; videos: YoutubeVideoSummary[]; nextPageToken: string | null }
+  | { status: "missing-google-account" }
+  | { status: "missing-refresh-token" }
+  | { status: "youtube-api-error"; code: number; message: string };
 
 function selectBestThumbnail(
   thumbnails: Record<string, { url?: string }> | undefined,
@@ -102,10 +136,29 @@ async function refreshGoogleAccessToken(refreshToken: string) {
   });
 
   if (!response.ok) {
+    let message = "Failed to refresh Google access token.";
+
+    try {
+      const errorData = (await response.json()) as GoogleTokenErrorResponse;
+      const code = (errorData.error ?? "").trim();
+      const details = (errorData.error_description ?? "").trim();
+
+      if (code === "invalid_grant") {
+        message =
+          "Google refresh token is invalid or expired. Reconnect your Google account by signing out and signing in again.";
+      } else if (code) {
+        message = details ? `${code}: ${details}` : code;
+      } else if (details) {
+        message = details;
+      }
+    } catch {
+      // Keep generic message if response is not JSON.
+    }
+
     return {
       status: "youtube-api-error" as const,
       code: response.status,
-      message: "Failed to refresh Google access token.",
+      message,
     };
   }
 
@@ -170,6 +223,163 @@ async function fetchYoutubeChannels(accessToken: string) {
   return {
     status: "ok" as const,
     channels,
+  };
+}
+
+async function fetchRecentVideosForChannel(
+  accessToken: string,
+  channelId: string,
+  limit: number,
+  pageToken?: string,
+) {
+  const query = new URLSearchParams({
+    part: "snippet",
+    channelId,
+    type: "video",
+    order: "date",
+    maxResults: String(limit),
+  });
+
+  if (pageToken) {
+    query.set("pageToken", pageToken);
+  }
+
+  const response = await fetch(
+    `https://www.googleapis.com/youtube/v3/search?${query.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    let message = "Failed to load YouTube videos.";
+    try {
+      const errorData = (await response.json()) as GoogleApiErrorResponse;
+      message =
+        errorData.error?.message ||
+        errorData.error?.errors?.[0]?.message ||
+        message;
+    } catch {
+      // Keep generic message if response is not JSON.
+    }
+
+    return {
+      status: "error" as const,
+      code: response.status,
+      message,
+    };
+  }
+
+  const data = (await response.json()) as YoutubeSearchResponse;
+  const videos = (data.items ?? [])
+    .map((item) => {
+      const videoId = item.id?.videoId;
+      if (!videoId) {
+        return null;
+      }
+
+      const title = item.snippet?.title?.trim() || "Untitled video";
+      return {
+        videoId,
+        title,
+        publishedAt: item.snippet?.publishedAt ?? null,
+        thumbnailUrl: selectBestThumbnail(item.snippet?.thumbnails),
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+      };
+    })
+    .filter((item): item is YoutubeVideoSummary => Boolean(item));
+
+  return {
+    status: "ok" as const,
+    videos,
+    nextPageToken: data.nextPageToken ?? null,
+  };
+}
+
+async function getValidGoogleAccessTokens(userId: string) {
+  const accounts = await prisma.account.findMany({
+    where: {
+      userId,
+      provider: "google",
+    },
+    orderBy: {
+      id: "asc",
+    },
+  });
+
+  if (accounts.length === 0) {
+    return { status: "missing-google-account" as const };
+  }
+
+  const tokens: string[] = [];
+  let hasMissingRefreshToken = false;
+  let firstApiError: { code: number; message: string } | null = null;
+
+  for (const account of accounts) {
+    const isExpired = account.expires_at
+      ? account.expires_at <= Math.floor(Date.now() / 1000) + 60
+      : false;
+    let accessToken = account.access_token;
+    let refreshToken = account.refresh_token;
+
+    if ((!accessToken || isExpired) && !refreshToken) {
+      hasMissingRefreshToken = true;
+      continue;
+    }
+
+    if (!accessToken || isExpired) {
+      const refreshed = await refreshGoogleAccessToken(refreshToken as string);
+      if (refreshed.status !== "ok") {
+        if (refreshed.status === "youtube-api-error") {
+          firstApiError ??= { code: refreshed.code, message: refreshed.message };
+        }
+        continue;
+      }
+
+      accessToken = refreshed.tokenData.access_token;
+      refreshToken = refreshed.tokenData.refresh_token ?? refreshToken;
+
+      await prisma.account.update({
+        where: { id: account.id },
+        data: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_at: Math.floor(Date.now() / 1000) + refreshed.tokenData.expires_in,
+        },
+      });
+    }
+
+    if (accessToken) {
+      tokens.push(accessToken);
+    }
+  }
+
+  if (tokens.length === 0) {
+    if (firstApiError) {
+      return {
+        status: "youtube-api-error" as const,
+        code: firstApiError.code,
+        message: firstApiError.message,
+      };
+    }
+
+    if (hasMissingRefreshToken) {
+      return { status: "missing-refresh-token" as const };
+    }
+
+    return {
+      status: "youtube-api-error" as const,
+      code: 502,
+      message: "No valid Google tokens available.",
+    };
+  }
+
+  return {
+    status: "ok" as const,
+    tokens,
   };
 }
 
@@ -450,5 +660,66 @@ export async function syncYoutubeProfileForUser(userId: string): Promise<Youtube
     status: "ok",
     profile: activeProfile,
     channels: syncedChannels,
+  };
+}
+
+export async function listRecentYoutubeVideosForUser(
+  userId: string,
+  options?: { channelId?: string | null; limit?: number; pageToken?: string | null },
+): Promise<YoutubeListVideosResult> {
+  const resolvedLimit = Math.min(Math.max(options?.limit ?? 12, 1), 25);
+  const preferredChannelId = options?.channelId ?? null;
+  const pageToken = options?.pageToken ?? null;
+
+  const activeChannel = preferredChannelId
+    ? await prisma.youtubeChannel.findUnique({
+        where: {
+          userId_channelId: {
+            userId,
+            channelId: preferredChannelId,
+          },
+        },
+        select: { channelId: true },
+      })
+    : await prisma.youtubeChannel.findFirst({
+        where: { userId, isActive: true },
+        select: { channelId: true },
+        orderBy: [{ updatedAt: "desc" }],
+      });
+
+  if (!activeChannel?.channelId) {
+    return {
+      status: "ok",
+      videos: [],
+      nextPageToken: null,
+    };
+  }
+
+  const tokensResult = await getValidGoogleAccessTokens(userId);
+  if (tokensResult.status !== "ok") {
+    return tokensResult;
+  }
+
+  let firstError: { code: number; message: string } | null = null;
+
+  for (const token of tokensResult.tokens) {
+    const result = await fetchRecentVideosForChannel(
+      token,
+      activeChannel.channelId,
+      resolvedLimit,
+      pageToken ?? undefined,
+    );
+
+    if (result.status === "ok") {
+      return result;
+    }
+
+    firstError ??= { code: result.code, message: result.message };
+  }
+
+  return {
+    status: "youtube-api-error",
+    code: firstError?.code ?? 502,
+    message: firstError?.message ?? "Failed to load YouTube videos.",
   };
 }

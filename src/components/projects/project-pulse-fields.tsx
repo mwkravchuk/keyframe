@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { VideoProjectStage } from "@prisma/client";
 import { VIDEO_PROJECT_STAGE_LABELS, VIDEO_PROJECT_STAGES } from "@/lib/video-projects";
+import { getYoutubeThumbnailUrl, getYoutubeVideoId } from "@/lib/youtube-video";
 import { FieldLabel, Input } from "@/components/ui/field";
 
 const STAGE_CHIP_STYLES: Record<VideoProjectStage, string> = {
@@ -20,11 +21,20 @@ type Channel = {
   avatarUrl: string | null;
 };
 
+type YoutubeVideoSummary = {
+  videoId: string;
+  title: string;
+  publishedAt: string | null;
+  thumbnailUrl: string | null;
+  url: string;
+};
+
 interface ProjectPulseFieldsProps {
   projectId: string;
   initialStage: VideoProjectStage;
   initialTargetPublishAt: string;
   initialYoutubeChannelId: string | null;
+  initialYoutubeVideoUrl: string;
   channels: Channel[];
 }
 
@@ -46,11 +56,20 @@ export function ProjectPulseFields({
   initialStage,
   initialTargetPublishAt,
   initialYoutubeChannelId,
+  initialYoutubeVideoUrl,
   channels,
 }: ProjectPulseFieldsProps) {
   const [stage, setStage] = useState<VideoProjectStage>(initialStage);
   const [targetPublishAt, setTargetPublishAt] = useState(initialTargetPublishAt);
   const [youtubeChannelId, setYoutubeChannelId] = useState(initialYoutubeChannelId ?? "");
+  const [youtubeVideoUrl, setYoutubeVideoUrl] = useState(initialYoutubeVideoUrl);
+  const [videos, setVideos] = useState<YoutubeVideoSummary[]>([]);
+  const [selectedVideoUrl, setSelectedVideoUrl] = useState("");
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+  const [videosError, setVideosError] = useState<string | null>(null);
+
+  const youtubeVideoId = getYoutubeVideoId(youtubeVideoUrl);
+  const youtubeThumbnailUrl = getYoutubeThumbnailUrl(youtubeVideoUrl);
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +102,58 @@ export function ProjectPulseFields({
     stage: initialStage,
     targetPublishAt: initialTargetPublishAt,
     youtubeChannelId: initialYoutubeChannelId ?? "",
+    youtubeVideoUrl: initialYoutubeVideoUrl,
   });
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const selectedChannelId = youtubeChannelId.trim();
+
+    if (!selectedChannelId) {
+      return;
+    }
+
+    async function loadVideos() {
+      setIsLoadingVideos(true);
+      setVideosError(null);
+
+      try {
+        const response = await fetch(
+          `/api/youtube/videos?channelId=${encodeURIComponent(selectedChannelId)}&limit=12`,
+          {
+            signal: controller.signal,
+          },
+        );
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(payload.error || "Failed to load videos.");
+        }
+
+        const payload = (await response.json()) as { videos?: YoutubeVideoSummary[] };
+        setVideos(payload.videos ?? []);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setVideos([]);
+        setVideosError(error instanceof Error ? error.message : "Failed to load videos.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingVideos(false);
+        }
+      }
+    }
+
+    void loadVideos();
+
+    return () => {
+      controller.abort();
+    };
+  }, [youtubeChannelId]);
 
   useEffect(() => {
     if (timeoutRef.current) {
@@ -93,7 +163,8 @@ export function ProjectPulseFields({
     const hasChanges =
       stage !== lastSavedRef.current.stage ||
       targetPublishAt !== lastSavedRef.current.targetPublishAt ||
-      youtubeChannelId !== lastSavedRef.current.youtubeChannelId;
+      youtubeChannelId !== lastSavedRef.current.youtubeChannelId ||
+      youtubeVideoUrl !== lastSavedRef.current.youtubeVideoUrl;
 
     if (!hasChanges) {
       setError(null);
@@ -145,6 +216,20 @@ export function ProjectPulseFields({
         );
       }
 
+      if (youtubeVideoUrl !== lastSavedRef.current.youtubeVideoUrl) {
+        updates.push(
+          fetch(`/api/projects/${projectId}/selections`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ field: "youtubeVideoUrl", value: youtubeVideoUrl || null }),
+          }).then((response) => {
+            if (!response.ok) {
+              throw new Error("Failed to save");
+            }
+          }),
+        );
+      }
+
       if (updates.length === 0) {
         return;
       }
@@ -159,6 +244,7 @@ export function ProjectPulseFields({
           stage,
           targetPublishAt,
           youtubeChannelId,
+          youtubeVideoUrl,
         };
       } catch {
         setError("Failed to save");
@@ -172,7 +258,7 @@ export function ProjectPulseFields({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [projectId, stage, targetPublishAt, youtubeChannelId]);
+  }, [projectId, stage, targetPublishAt, youtubeChannelId, youtubeVideoUrl]);
 
   return (
     <>
@@ -221,7 +307,12 @@ export function ProjectPulseFields({
           <select
             id="youtubeChannelId"
             value={youtubeChannelId}
-            onChange={(event) => setYoutubeChannelId(event.target.value)}
+            onChange={(event) => {
+              setYoutubeChannelId(event.target.value);
+              setVideos([]);
+              setSelectedVideoUrl("");
+              setVideosError(null);
+            }}
             className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           >
             <option value="">No channel assigned</option>
@@ -233,6 +324,84 @@ export function ProjectPulseFields({
           </select>
         </div>
       </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div>
+          <FieldLabel htmlFor="youtubeVideoUrl">Long-form YouTube URL</FieldLabel>
+          <Input
+            id="youtubeVideoUrl"
+            name="youtubeVideoUrl"
+            type="url"
+            value={youtubeVideoUrl}
+            onChange={(event) => {
+              setYoutubeVideoUrl(event.target.value);
+              setSelectedVideoUrl("");
+            }}
+            className="mt-2"
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
+        </div>
+
+        <div>
+          <FieldLabel htmlFor="youtubeVideoPicker">Pick from recent channel videos</FieldLabel>
+          <select
+            id="youtubeVideoPicker"
+            value={selectedVideoUrl}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setSelectedVideoUrl(nextValue);
+              if (nextValue) {
+                setYoutubeVideoUrl(nextValue);
+              }
+            }}
+            disabled={!youtubeChannelId || isLoadingVideos}
+            className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm disabled:opacity-60"
+          >
+            <option value="">
+              {youtubeChannelId
+                ? isLoadingVideos
+                  ? "Loading recent videos..."
+                  : "Select a recent video"
+                : "Select a channel first"}
+            </option>
+            {videos.map((video) => (
+              <option key={video.videoId} value={video.url}>
+                {video.title}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {videosError
+              ? videosError
+              : youtubeChannelId && !isLoadingVideos && videos.length === 0
+                ? "No recent videos found for this channel."
+                : "Choose a past upload to auto-fill the URL field."}
+          </p>
+        </div>
+      </div>
+
+      {youtubeThumbnailUrl ? (
+        <div className="mt-3">
+          <a
+            href={youtubeVideoId ? `https://www.youtube.com/watch?v=${youtubeVideoId}` : youtubeVideoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="block max-w-sm overflow-hidden rounded-md border border-border bg-card transition hover:border-foreground/35"
+            title="Open video on YouTube"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={youtubeThumbnailUrl}
+              alt="YouTube video thumbnail"
+              className="h-40 w-full object-cover"
+              loading="lazy"
+            />
+            <div className="border-t border-border/70 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+              Linked long-form video preview
+            </div>
+          </a>
+        </div>
+      ) : null}
 
       <div className="mt-2 h-4 text-[11px] text-muted-foreground">
         {isSaving ? "Saving pulse..." : error ?? "Pulse saved automatically"}

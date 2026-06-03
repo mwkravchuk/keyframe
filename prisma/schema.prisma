@@ -66,6 +66,7 @@ model VideoProject {
   nextStep         String?
   targetPublishAt  DateTime?
   youtubeChannelId String?
+  youtubeVideoUrl  String?
   
   // Title Ideation
   proposedTitles   String?           // JSON array of suggested titles

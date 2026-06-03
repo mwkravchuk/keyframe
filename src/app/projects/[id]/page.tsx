@@ -125,6 +125,7 @@ export default async function ProjectDetailPage({
                 initialStage={project.stage}
                 initialTargetPublishAt={targetPublishAt}
                 initialYoutubeChannelId={project.youtubeChannelId}
+                initialYoutubeVideoUrl={project.youtubeVideoUrl ?? ""}
                 channels={channels}
               />
             </div>

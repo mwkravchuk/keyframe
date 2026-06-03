@@ -40,6 +40,7 @@ export async function createProjectAction(formData: FormData) {
   const stage = parseStage(formData.get("stage"));
   const targetPublishAtRaw = String(formData.get("targetPublishAt") ?? "").trim();
   const youtubeChannelId = String(formData.get("youtubeChannelId") ?? "").trim() || null;
+  const youtubeVideoUrl = String(formData.get("youtubeVideoUrl") ?? "").trim() || null;
 
   if (!title) {
     return;
@@ -55,6 +56,7 @@ export async function createProjectAction(formData: FormData) {
       nextStep: nextStep || null,
       targetPublishAt: targetPublishAtRaw ? new Date(targetPublishAtRaw) : null,
       youtubeChannelId,
+      youtubeVideoUrl,
     },
   });
 
@@ -96,6 +98,7 @@ export async function updateProjectAction(formData: FormData) {
   const stage = parseStage(formData.get("stage"));
   const targetPublishAtRaw = String(formData.get("targetPublishAt") ?? "").trim();
   const youtubeChannelId = String(formData.get("youtubeChannelId") ?? "").trim() || null;
+  const youtubeVideoUrl = String(formData.get("youtubeVideoUrl") ?? "").trim() || null;
 
   if (!id) {
     return;
@@ -109,6 +112,7 @@ export async function updateProjectAction(formData: FormData) {
     stage: VideoProjectStage;
     targetPublishAt: Date | null;
     youtubeChannelId: string | null;
+    youtubeVideoUrl: string | null;
   } = {
     concept: concept || null,
     notes: notes || null,
@@ -116,6 +120,7 @@ export async function updateProjectAction(formData: FormData) {
     stage,
     targetPublishAt: targetPublishAtRaw ? new Date(targetPublishAtRaw) : null,
     youtubeChannelId,
+    youtubeVideoUrl,
   };
 
   if (title) {

@@ -80,6 +80,7 @@ export default async function ProjectsPage({
       nextStep: true,
       stage: true,
       youtubeChannelId: true,
+      youtubeVideoUrl: true,
     },
   });
 
@@ -95,6 +96,7 @@ export default async function ProjectsPage({
     nextStep: project.nextStep,
     stage: project.stage,
     youtubeChannelId: project.youtubeChannelId,
+    youtubeVideoUrl: project.youtubeVideoUrl,
     youtubeChannelTitle: project.youtubeChannelId
       ? (channelTitleMap.get(project.youtubeChannelId) ?? null)
       : null,
