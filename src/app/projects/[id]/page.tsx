@@ -6,7 +6,6 @@ import { getUserIdWithDevBypass } from "@/lib/dev-auth-bypass";
 import { prisma } from "@/lib/prisma";
 import { NoteScratchpad } from "@/components/projects/note-scratchpad";
 import { ProjectPulseFields } from "@/components/projects/project-pulse-fields";
-import { AutoSaveTextarea } from "@/components/projects/auto-save-textarea";
 import { ProjectTitleInline } from "@/components/projects/project-title-inline";
 import { ActionPanel } from "@/components/ui/action-panel";
 import { ProjectGeneratorStack } from "@/components/projects/project-generator-stack";
@@ -102,6 +101,34 @@ export default async function ProjectDetailPage({
   const savedScenes = parseSavedScenes(project.nextStep);
   const currentHook = shortlistedHooks[0] ?? null;
 
+  let submagicData: {
+    id: string;
+    status: string;
+    previewUrl: string | null;
+    downloadUrl: string | null;
+    directUrl: string | null;
+    failureReason: string | null;
+    updatedAt: string | null;
+    magicClips: Array<{
+      id: string;
+      title: string;
+      status: string;
+      duration: number | null;
+      previewUrl: string | null;
+      downloadUrl: string | null;
+      directUrl: string | null;
+      viralityTotal: number | null;
+    }>;
+  } | null = null;
+
+  if (project.submagicData) {
+    try {
+      submagicData = JSON.parse(project.submagicData);
+    } catch {
+      submagicData = null;
+    }
+  }
+
   return (
     <div className="kf-project-detail mx-auto w-full max-w-6xl space-y-16 lg:space-y-20">
       <Link
@@ -143,21 +170,6 @@ export default async function ProjectDetailPage({
       </section>
 
       <main className="space-y-12 lg:space-y-14">
-        <section className="space-y-7">
-          <h2 className="text-3xl font-semibold tracking-tight text-foreground">1. Concept</h2>
-
-          <AutoSaveTextarea
-            projectId={project.id}
-            field="concept"
-            label="Concept (Your Seed Idea)"
-            initialValue={project.concept ?? ""}
-            placeholder="Write out your raw idea. Vagueness is fine and we can refine it together."
-            rows={4}
-            variant="light"
-            hideLabel
-          />
-        </section>
-
         <ProjectGeneratorStack
           projectId={project.id}
           concept={project.concept || ""}
@@ -168,6 +180,9 @@ export default async function ProjectDetailPage({
           savedScenes={savedScenes}
           currentTitle={project.title}
           currentHook={currentHook}
+          hasYoutubeVideoUrl={Boolean(project.youtubeVideoUrl)}
+          initialSubmagicStatus={project.submagicStatus}
+          initialSubmagicData={submagicData}
         />
       </main>
     </div>

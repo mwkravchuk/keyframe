@@ -67,6 +67,10 @@ model VideoProject {
   targetPublishAt  DateTime?
   youtubeChannelId String?
   youtubeVideoUrl  String?
+  submagicProjectId String?
+  submagicStatus    String?
+  submagicData      String?
+  submagicSyncedAt  DateTime?
   
   // Title Ideation
   proposedTitles   String?           // JSON array of suggested titles
@@ -86,6 +90,7 @@ model VideoProject {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, stage])
+  @@index([userId, submagicProjectId])
 }
 
 model Account {

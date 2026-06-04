@@ -59,10 +59,6 @@ export function ConsolidatorPhase({
 
   const activeCategories = categories.filter((c) => c.items.length > 0);
 
-  if (activeCategories.length === 0) {
-    return null;
-  }
-
   const handleApplySelection = async (fieldName: "title" | "hook" | "scenes", value: string) => {
     if (fieldName === "scenes") {
       return;
@@ -103,66 +99,68 @@ export function ConsolidatorPhase({
 
   return (
     <ActionPanel className="mt-2">
-      <div className="mb-6">
-        <p className="text-xs text-muted-foreground">
-          Finalize your direction using saved titles, hooks, and scene prompts
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {activeCategories.map((category) => (
-          <div key={category.fieldName} className="flex flex-col">
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-muted-foreground">{category.icon}</span>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                {category.label}
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                ({category.items.length} saved)
-              </span>
-            </div>
-            <div className="space-y-2 flex-1">
-              {category.items.map((value) => {
-                const isCurrent = value === category.currentValue;
-                const isReadOnly = category.fieldName === "scenes";
-
-                return (
-                  <div
-                    key={value}
-                    className="flex items-start justify-between gap-3 rounded-md border border-border bg-background/70 p-3"
-                  >
-                    <p className="text-sm text-foreground leading-relaxed flex-1 wrap-break-word">
-                      {value}
-                    </p>
-                    {isReadOnly ? (
-                      <span className="shrink-0 whitespace-nowrap rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground">
-                        Saved
-                      </span>
-                    ) : (
-                      <Button
-                        onClick={() => handleApplySelection(category.fieldName, value)}
-                        disabled={isApplying === category.fieldName || isCurrent}
-                        variant={isCurrent ? "outline" : "subtle"}
-                        size="sm"
-                        className={`shrink-0 whitespace-nowrap ${
-                          isCurrent
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {isCurrent ? "Applied" : isApplying === category.fieldName ? "Applying..." : "Apply"}
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+      {activeCategories.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No generated content.</p>
+      ) : (
+        <>
+          <div className="mb-6">
+            <p className="text-xs text-muted-foreground">
+              Finalize your direction using saved titles, hooks, and scene prompts
+            </p>
           </div>
-        ))}
-      </div>
 
-      {error && (
-        <div className="mt-3 text-xs text-destructive">{error}</div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {activeCategories.map((category) => (
+              <div key={category.fieldName} className="flex flex-col">
+                <div className="mb-4 flex items-baseline gap-2">
+                  <span className="text-muted-foreground">{category.icon}</span>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                    {category.label}
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    ({category.items.length} saved)
+                  </span>
+                </div>
+                <div className="flex-1 space-y-2">
+                  {category.items.map((value) => {
+                    const isCurrent = value === category.currentValue;
+                    const isReadOnly = category.fieldName === "scenes";
+
+                    return (
+                      <div
+                        key={value}
+                        className="flex items-start justify-between gap-3 rounded-md border border-border bg-background/70 p-3"
+                      >
+                        <p className="flex-1 wrap-break-word text-sm leading-relaxed text-foreground">
+                          {value}
+                        </p>
+                        {isReadOnly ? (
+                          <span className="shrink-0 whitespace-nowrap rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground">
+                            Saved
+                          </span>
+                        ) : (
+                          <Button
+                            onClick={() => handleApplySelection(category.fieldName, value)}
+                            disabled={isApplying === category.fieldName || isCurrent}
+                            variant={isCurrent ? "outline" : "subtle"}
+                            size="sm"
+                            className={`shrink-0 whitespace-nowrap ${
+                              isCurrent ? "text-foreground" : "text-muted-foreground"
+                            }`}
+                          >
+                            {isCurrent ? "Applied" : isApplying === category.fieldName ? "Applying..." : "Apply"}
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {error ? <div className="mt-3 text-xs text-destructive">{error}</div> : null}
+        </>
       )}
     </ActionPanel>
   );
